@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="print-sheet">
+  <header class="print-head">
+    <div>
+      <h1>{{ SETTINGS.shop_name }} Sales Report</h1>
+      <p class="muted">{{ f }} to {{ to }}</p>
+    </div>
+    <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+  </header>
+
+  <div class="print-summary">
+    <div><span>Total sales</span><strong>{{ stats.total|peso }}</strong></div>
+    <div><span>Orders</span><strong>{{ stats.orders }}</strong></div>
+    <div><span>Packs sold</span><strong>{{ stats.packs|num }}</strong></div>
+    <div><span>Average</span><strong>{{ stats.avg|peso }}</strong></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px;">
+    <h2>Orders</h2>
+    <div class="table-wrap print-table">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'Date and time' if multi_day else 'Time' }}</th>
+            <th>Buyer</th>
+            <th>Price</th>
+            <th class="num">Packs</th>
+            <th class="num">Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in rows %}
+            <tr class="{{ 'voided' if s.status == 'voided' }}">
+              <td>{{ s.createdAt|dt if multi_day else s.createdAt|time }}</td>
+              <td>{{ s.buyer }}</td>
+              <td>{{ TIER_LABEL.get(s.tier, 'SRP') }}</td>
+              <td class="num">{{ s.packs }}</td>
+              <td class="num">{{ s.total|peso }}</td>
+              <td>{{ s.status }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px;">
+    <h2>Items sold</h2>
+    <div class="table-wrap print-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th class="num">Packs</th>
+            <th class="num">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in items %}
+            <tr>
+              <td>{{ i.name }}</td>
+              <td class="num">{{ i.qty }}</td>
+              <td class="num">{{ i.amount|peso }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

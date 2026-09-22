@@ -2,7 +2,7 @@
 {% block content %}
 <header class="view-head">
   <h1>Sales</h1>
-  <div class="head-actions"><a class="btn" href="{{ url_for('sales_export', **{'from': f, 'to': to}) }}">Export sales (CSV)</a></div>
+  <div class="head-actions"><a class="btn" href="{{ url_for('sales_print', **{'from': f, 'to': to}) }}">Printable sales</a></div>
 </header>
 <form class="toolbar" method="get" id="rangeForm">
   <label class="inline">From<input type="date" name="from" value="{{ f }}"></label>
@@ -33,7 +33,17 @@
           <td><span class="badge tier">{{ TIER_LABEL[s.tier] }}</span></td>
           <td class="num">{{ s.packs }}</td>
           <td class="num"><b>{{ s.total|peso }}</b></td>
-          <td><a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">View</a></td>
+          <td>
+            <div class="actions">
+              <a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">View</a>
+              {% if s.status == 'voided' %}
+              <form method="post" action="{{ url_for('delete_sale', sid=s.id) }}" data-confirm="Delete voided order {{ s.orderNo }} permanently? This cannot be undone.">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <button class="link-btn" type="submit">Delete</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
         </tr>
       {% endfor %}
       </tbody>

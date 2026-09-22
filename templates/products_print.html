@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="print-sheet">
+  <header class="print-head">
+    <div>
+      <h1>{{ SETTINGS.shop_name }} Stock Summary</h1>
+      <p class="muted">Generated {{ today }}</p>
+    </div>
+    <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+  </header>
+
+  <div class="print-summary">
+    <div><span>Total products</span><strong>{{ products|length }}</strong></div>
+    <div><span>Packs on hand</span><strong>{{ packs|num }}</strong></div>
+    <div><span>Low/out stock</span><strong>{{ low_count }}</strong></div>
+  </div>
+
+  <div class="table-wrap print-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th class="num">SRP</th>
+          <th class="num">Reseller</th>
+          <th class="num">Dealer</th>
+          <th class="num">Stock</th>
+          <th class="num">Low stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+          <tr>
+            <td>{{ p.name }}</td>
+            <td>{{ p.category }}</td>
+            <td class="num">{{ p.srp|peso }}</td>
+            <td class="num">{{ p.reseller|peso }}</td>
+            <td class="num">{{ p.dealer|peso }}</td>
+            <td class="num">{{ p.stock or 0 }}</td>
+            <td class="num">{{ p.lowStock or SETTINGS.low_stock }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

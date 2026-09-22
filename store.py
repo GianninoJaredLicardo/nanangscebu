@@ -191,6 +191,21 @@ class FirestoreStore:
 
         run(self.db.transaction())
 
+    def delete_sale(self, sid):
+        sale_ref = self.sales.document(sid)
+
+        @firestore.transactional
+        def run(tx):
+            ss = sale_ref.get(transaction=tx)
+            if not ss.exists:
+                raise StoreError("This order no longer exists.")
+            sale = ss.to_dict() or {}
+            if sale.get("status") != "voided":
+                raise StoreError("Only voided orders can be deleted.")
+            tx.delete(sale_ref)
+
+        run(self.db.transaction())
+
     def sales_between(self, start, end):
         q = (self.sales.where(filter=FieldFilter("createdAt", ">=", start))
              .where(filter=FieldFilter("createdAt", "<", end))

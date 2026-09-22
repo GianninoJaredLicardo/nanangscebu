@@ -19,14 +19,14 @@
   <aside class="ticket" aria-label="Order ticket">
     <div class="ticket-head"><h2>Order ticket</h2><button class="link-btn" id="clearCart" type="button">Clear</button></div>
     <div class="field-row">
-      <label>Buyer name<input id="buyerName" placeholder="Walk-in" maxlength="120"></label>
-      <label>Contact or address<input id="buyerContact" placeholder="Optional" maxlength="200"></label>
+      <label>Buyer name<input id="buyerName" placeholder="Required" maxlength="120" required></label>
+      <label>Contact number<input id="buyerContact" placeholder="Required" maxlength="200" required></label>
+      <label>Address<input id="buyerAddress" placeholder="Required" maxlength="300" required></label>
     </div>
     <div class="tier-row">
       <span class="label-text">Price</span>
       <div class="seg" id="tierSeg" role="group" aria-label="Price level">
-        <button type="button" data-tier="auto" class="on">Auto</button>
-        <button type="button" data-tier="srp">SRP</button>
+        <button type="button" data-tier="srp" class="on">SRP</button>
         <button type="button" data-tier="reseller">Reseller</button>
         <button type="button" data-tier="dealer">Dealer</button>
       </div>
@@ -40,9 +40,8 @@
     </div>
     <div class="field-row">
       <label>Payment<select id="payMethod">{% for m in PAY_METHODS %}<option>{{ m }}</option>{% endfor %}</select></label>
-      <label>Amount received<input id="payAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="Optional"></label>
+      <div></div>
     </div>
-    <p class="change" id="changeLine"></p>
     <label>Note<input id="orderNote" placeholder="Optional, e.g. deliver Saturday" maxlength="300"></label>
     <button class="btn btn-primary btn-block btn-lg" id="completeSale" type="button" disabled>Complete sale</button>
   </aside>

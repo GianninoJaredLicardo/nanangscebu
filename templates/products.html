@@ -4,7 +4,7 @@
   <h1>Products</h1>
   <div class="head-actions">
     {% if products %}
-    <a class="btn" href="{{ url_for('products_export') }}">Export stock (CSV)</a>
+    <a class="btn" href="{{ url_for('products_print') }}">Printable stock</a>
     <a class="btn" href="{{ url_for('backup') }}">Download backup</a>
     {% endif %}
     <a class="btn btn-primary" href="{{ url_for('product_new') }}">Add product</a>

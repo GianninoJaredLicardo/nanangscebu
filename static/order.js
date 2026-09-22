@@ -11,7 +11,7 @@
   const S = JSON.parse($("#settings-data").textContent);
   const byId = new Map(products.map((p) => [p.id, p]));
   const cart = new Map(); // id -> qty
-  let tierMode = "auto";
+  let tierMode = "srp";
   let cat = "All";
 
   function tierTotals() {
@@ -20,9 +20,7 @@
     return t;
   }
   function tier() {
-    if (tierMode !== "auto") return tierMode;
-    const t = tierTotals();
-    return t.dealer >= S.dealerMin ? "dealer" : t.reseller >= S.resellerMin ? "reseller" : "srp";
+    return tierMode in TIER_LABEL ? tierMode : "srp";
   }
   function lines() {
     const tr = tier();
@@ -48,11 +46,10 @@
     $$("#tierSeg button").forEach((b) => b.classList.toggle("on", b.dataset.tier === tierMode));
     const t = tierTotals();
     let note;
-    if (!cart.size) note = `Auto picks the price: Reseller from ${peso(S.resellerMin)}, Dealer from ${peso(S.dealerMin)}.`;
-    else if (tierMode !== "auto") note = `Using <b>${TIER_LABEL[tr]}</b> price (set by you).`;
-    else if (tr === "dealer") note = `Using <b>Dealer</b> price. Order is ${peso(S.dealerMin)} or more.`;
-    else if (tr === "reseller") note = `Using <b>Reseller</b> price. Add ${peso(S.dealerMin - t.dealer)} more for Dealer price.`;
-    else note = `Using <b>SRP</b>. Add ${peso(S.resellerMin - t.reseller)} more for Reseller price.`;
+    if (!cart.size) note = `Using <b>${TIER_LABEL[tr]}</b> price for this order.`;
+    else if (tr === "dealer") note = `Using <b>Dealer</b> price for this order.`;
+    else if (tr === "reseller") note = `Using <b>Reseller</b> price for this order.`;
+    else note = `Using <b>SRP</b> price for this order.`;
     $("#tierNote").innerHTML = note;
 
     const ls = lines();
@@ -76,14 +73,6 @@
     $("#tPacks").textContent = packs;
     $("#tSub").textContent = peso(subtotal);
     $("#tTotal").textContent = peso(total);
-    const paid = $("#payAmount").value;
-    const cl = $("#changeLine");
-    cl.className = "change";
-    if (paid !== "" && ls.length) {
-      const d = num(paid) - total;
-      cl.textContent = d >= 0 ? `Change: ${peso(d)}` : `Short by ${peso(-d)}`;
-      cl.classList.add(d >= 0 ? "ok" : "bad");
-    } else cl.textContent = "";
     $("#completeSale").disabled = !ls.length;
     const jump = $("#jumpTicket");
     jump.hidden = !ls.length;
@@ -119,8 +108,8 @@
     q > 0 ? cart.set(id, q) : cart.delete(id);
     render();
   });
-  ["#discount", "#payAmount"].forEach((s) => $(s).addEventListener("input", renderCart));
-  $("#clearCart").addEventListener("click", () => { if (!cart.size || confirm("Clear this order?")) { cart.clear(); tierMode = "auto"; render(); } });
+  ["#discount"].forEach((s) => $(s).addEventListener("input", renderCart));
+  $("#clearCart").addEventListener("click", () => { if (!cart.size || confirm("Clear this order?")) { cart.clear(); tierMode = "srp"; render(); } });
   $("#jumpTicket").addEventListener("click", () => $(".ticket").scrollIntoView({ behavior: "smooth", block: "start" }));
   new IntersectionObserver(([e]) => document.body.classList.toggle("ticket-visible", e.isIntersecting), { threshold: 0.1 }).observe($(".ticket"));
   window.addEventListener("beforeunload", (e) => { if (cart.size && !window.__saving) { e.preventDefault(); e.returnValue = ""; } });
@@ -128,6 +117,13 @@
   $("#completeSale").addEventListener("click", async () => {
     const ls = lines();
     if (!ls.length) return;
+    const buyerName = $("#buyerName").value.trim();
+    const buyerContact = $("#buyerContact").value.trim();
+    const buyerAddress = $("#buyerAddress").value.trim();
+    if (!buyerName || !buyerContact || !buyerAddress) {
+      showToast("Buyer name, contact number, and address are required.", true);
+      return;
+    }
     const short = ls.filter((l) => l.short);
     if (short.length) { showToast("Not enough stock: " + short.map((l) => `${l.name} (${l.stock} left)`).join(", "), true); return; }
     const btn = $("#completeSale");
@@ -138,8 +134,8 @@
         headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
         body: JSON.stringify({
           items: ls.map((l) => ({ id: l.id, qty: l.qty })),
-          tierMode, buyer: $("#buyerName").value, contact: $("#buyerContact").value, note: $("#orderNote").value,
-          discount: $("#discount").value, payMethod: $("#payMethod").value, amountPaid: $("#payAmount").value,
+          tierMode, buyer: buyerName, contact: buyerContact, address: buyerAddress, note: $("#orderNote").value,
+          discount: $("#discount").value, payMethod: $("#payMethod").value,
         }),
       });
       const data = await res.json().catch(() => ({}));

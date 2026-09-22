@@ -16,7 +16,9 @@
     </label>
     <p class="muted small" id="rsCurrent"></p>
     <div class="field-row">
-      <label>Packs received<input name="qty" type="number" min="1" step="1" required inputmode="numeric" {{ 'autofocus' if selected }}></label>
+      <label>Packs received<select name="qty" required {{ 'autofocus' if selected }}>
+        {% for qty in range(1, 101) %}<option value="{{ qty }}">{{ qty }}</option>{% endfor %}
+      </select></label>
       <label>Note<input name="note" value="{{ note }}" maxlength="200" placeholder="e.g. Delivery from supplier"></label>
     </div>
     <button class="btn btn-primary btn-block" type="submit">Add to stock</button>

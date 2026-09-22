@@ -408,6 +408,15 @@ def csv_response(filename, rows):
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
+@app.route("/products/print")
+def products_print():
+    ps = sort_products(db().list_products())
+    return render_template("products_print.html", products=ps, cats=categories(ps),
+                           low_count=sum(1 for p in ps if stock_state(p) != "ok"),
+                           packs=sum(p.get("stock") or 0 for p in ps),
+                           today=date_key())
+
+
 @app.route("/products/export.csv")
 def products_export():
     rows = [["Product", "Category", "SRP", "Reseller", "Dealer", "Stock", "Low-stock level", "Stock value (dealer)"]]
@@ -501,6 +510,24 @@ def sales():
                            f=f, to=to, rng=rng, multi_day=f != to)
 
 
+@app.route("/sales/print")
+def sales_print():
+    f, to, rng = sales_range()
+    rows = db().sales_between(day_start(f), day_start(to) + timedelta(days=1))
+    done = [s for s in rows if s.get("status") != "voided"]
+    agg = {}
+    for s in done:
+        for i in s["items"]:
+            a = agg.setdefault(i["productId"], {"name": i["name"], "qty": 0, "amount": 0})
+            a["qty"] += i["qty"]
+            a["amount"] += i["subtotal"]
+    total = sum(s["total"] for s in done)
+    stats = {"total": total, "orders": len(done), "voided": len(rows) - len(done),
+             "packs": sum(s["packs"] for s in done), "avg": round(total / len(done)) if done else 0}
+    return render_template("sales_print.html", rows=rows, stats=stats, items=sorted(agg.values(), key=lambda a: -a["qty"]),
+                           f=f, to=to, rng=rng, multi_day=f != to, today=date_key())
+
+
 @app.route("/sales/export.csv")
 def sales_export():
     f, to, _ = sales_range()
@@ -533,6 +560,17 @@ def void(sid):
     except user_error_types() as e:
         flash(str(e), "error")
     return redirect(url_for("receipt", sid=sid))
+
+
+@app.route("/sales/<sid>/delete", methods=["POST"])
+def delete_sale(sid):
+    try:
+        db().delete_sale(sid)
+        flash("Voided order deleted.")
+    except user_error_types() as e:
+        flash(str(e), "error")
+        return redirect(url_for("receipt", sid=sid))
+    return redirect(url_for("sales"))
 
 
 # ------------------------------------------------------------------

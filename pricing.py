@@ -52,11 +52,21 @@ def clean_request(data):
         mode = "auto"
     pay = data.get("payMethod") if data.get("payMethod") in PAY_METHODS else "Cash"
     paid_raw = data.get("amountPaid")
+    buyer = (str(data.get("buyer") or "").strip())[:120]
+    contact = (str(data.get("contact") or "").strip())[:200]
+    address = (str(data.get("address") or "").strip())[:300]
+    if not buyer:
+        raise SaleError("Enter the buyer name.")
+    if not contact:
+        raise SaleError("Enter the buyer contact number.")
+    if not address:
+        raise SaleError("Enter the buyer address.")
     return {
         "qty_by_id": qty_by_id,
         "mode": mode,
-        "buyer": (str(data.get("buyer") or "").strip() or "Walk-in")[:120],
-        "contact": str(data.get("contact") or "").strip()[:200],
+        "buyer": buyer,
+        "contact": contact,
+        "address": address,
         "note": str(data.get("note") or "").strip()[:300],
         "discount": max(_num(data.get("discount")), 0),
         "payMethod": pay,
@@ -91,6 +101,7 @@ def build_sale(products_by_id, req, settings, now, order_no):
         "orderNo": order_no,
         "buyer": req["buyer"],
         "contact": req["contact"],
+        "address": req.get("address", ""),
         "tier": tier,
         "items": items,
         "packs": sum(i["qty"] for i in items),
