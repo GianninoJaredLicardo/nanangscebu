@@ -1,0 +1,402 @@
+[
+  {
+    "id": "authentic-sisig-classic-250g",
+    "name": "Authentic Sisig (Classic) 250g",
+    "category": "Ready-to-Heat",
+    "srp": 170,
+    "reseller": 150,
+    "dealer": 130
+  },
+  {
+    "id": "authentic-sisig-classic-100g-x10",
+    "name": "Authentic Sisig (Classic) 100g x10",
+    "category": "Ready-to-Heat",
+    "srp": 620,
+    "reseller": 550,
+    "dealer": 490
+  },
+  {
+    "id": "authentic-sisig-spicy-250g",
+    "name": "Authentic Sisig (Spicy) 250g",
+    "category": "Ready-to-Heat",
+    "srp": 170,
+    "reseller": 150,
+    "dealer": 130
+  },
+  {
+    "id": "express-roast-beef-450g",
+    "name": "Express Roast Beef 450g",
+    "category": "Ready-to-Heat",
+    "srp": 290,
+    "reseller": 260,
+    "dealer": 230
+  },
+  {
+    "id": "express-korean-beef-stew-450g",
+    "name": "Express Korean Beef Stew 450g",
+    "category": "Ready-to-Heat",
+    "srp": 290,
+    "reseller": 260,
+    "dealer": 230
+  },
+  {
+    "id": "home-style-beef-caldereta-450g",
+    "name": "Home-style Beef Caldereta 450g",
+    "category": "Ready-to-Heat",
+    "srp": 310,
+    "reseller": 270,
+    "dealer": 240
+  },
+  {
+    "id": "express-beef-pares-450g",
+    "name": "Express Beef Pares 450g",
+    "category": "Ready-to-Heat",
+    "srp": 290,
+    "reseller": 260,
+    "dealer": 230
+  },
+  {
+    "id": "express-beef-tapa-220g",
+    "name": "Express Beef Tapa 220g",
+    "category": "Ready-to-Heat",
+    "srp": 190,
+    "reseller": 170,
+    "dealer": 150
+  },
+  {
+    "id": "bicol-express-300g",
+    "name": "Bicol Express 300g",
+    "category": "Ready-to-Heat",
+    "srp": 220,
+    "reseller": 200,
+    "dealer": 180
+  },
+  {
+    "id": "pork-adobo-425g",
+    "name": "Pork Adobo 425g",
+    "category": "Ready-to-Heat",
+    "srp": 240,
+    "reseller": 220,
+    "dealer": 190
+  },
+  {
+    "id": "capampangan-asado-425g",
+    "name": "Capampangan Asado 425g",
+    "category": "Ready-to-Heat",
+    "srp": 240,
+    "reseller": 220,
+    "dealer": 190
+  },
+  {
+    "id": "pork-sinigang-425g",
+    "name": "Pork Sinigang 425g",
+    "category": "Ready-to-Heat",
+    "srp": 240,
+    "reseller": 220,
+    "dealer": 190
+  },
+  {
+    "id": "pork-giniling-250g",
+    "name": "Pork Giniling 250g",
+    "category": "Ready-to-Heat",
+    "srp": 170,
+    "reseller": 150,
+    "dealer": 130
+  },
+  {
+    "id": "pork-giniling-100g-x10",
+    "name": "Pork Giniling 100g x10",
+    "category": "Ready-to-Heat",
+    "srp": 580,
+    "reseller": 520,
+    "dealer": 460
+  },
+  {
+    "id": "pork-bopis-250g",
+    "name": "Pork Bopis 250g",
+    "category": "Ready-to-Heat",
+    "srp": 150,
+    "reseller": 130,
+    "dealer": 120
+  },
+  {
+    "id": "pork-bopis-100g-x10",
+    "name": "Pork Bopis 100g x10",
+    "category": "Ready-to-Heat",
+    "srp": 580,
+    "reseller": 520,
+    "dealer": 460
+  },
+  {
+    "id": "garlic-pepper-beef-350g",
+    "name": "Garlic Pepper Beef 350g",
+    "category": "Ready-to-Heat",
+    "srp": 270,
+    "reseller": 240,
+    "dealer": 220
+  },
+  {
+    "id": "breakfast-franks-500g-8pcs",
+    "name": "Breakfast Franks 500g 8pcs",
+    "category": "Easy-to-Cook",
+    "srp": 200,
+    "reseller": 180,
+    "dealer": 160
+  },
+  {
+    "id": "winner-wiener-sausage-250g-15pcs",
+    "name": "Winner Wiener Sausage 250g 15pcs",
+    "category": "Easy-to-Cook",
+    "srp": 160,
+    "reseller": 140,
+    "dealer": 130
+  },
+  {
+    "id": "capampangan-tocino-450g",
+    "name": "Capampangan Tocino 450g",
+    "category": "Easy-to-Cook",
+    "srp": 180,
+    "reseller": 160,
+    "dealer": 140
+  },
+  {
+    "id": "capampangan-tocino-220g-x5",
+    "name": "Capampangan Tocino 220g x5",
+    "category": "Easy-to-Cook",
+    "srp": 390,
+    "reseller": 350,
+    "dealer": 310
+  },
+  {
+    "id": "garlic-longanisa-1kg-200g-x5",
+    "name": "Garlic Longanisa 1kg (200g x5)",
+    "category": "Easy-to-Cook",
+    "srp": 360,
+    "reseller": 320,
+    "dealer": 290
+  },
+  {
+    "id": "skinless-longanisa-1kg-200g-x5",
+    "name": "Skinless Longanisa 1kg (200g x5)",
+    "category": "Easy-to-Cook",
+    "srp": 340,
+    "reseller": 310,
+    "dealer": 270
+  },
+  {
+    "id": "home-style-premium-barbecue-10pcs",
+    "name": "Home-style Premium Barbecue 10pcs",
+    "category": "Easy-to-Cook",
+    "srp": 260,
+    "reseller": 230,
+    "dealer": 210
+  },
+  {
+    "id": "marinated-pork-tapa-250g-x5",
+    "name": "Marinated Pork Tapa 250g x5",
+    "category": "Easy-to-Cook",
+    "srp": 490,
+    "reseller": 440,
+    "dealer": 390
+  },
+  {
+    "id": "pork-ear-barbecue-10-2pcs",
+    "name": "Pork Ear Barbecue 10+2pcs",
+    "category": "Easy-to-Cook",
+    "srp": 240,
+    "reseller": 220,
+    "dealer": 190
+  },
+  {
+    "id": "chicken-isaw-12pcs",
+    "name": "Chicken Isaw 12pcs",
+    "category": "Easy-to-Cook",
+    "srp": 170,
+    "reseller": 150,
+    "dealer": 130
+  },
+  {
+    "id": "diretso-prito-crispy-pata-700-800g",
+    "name": "Diretso-Prito Crispy Pata 700-800g",
+    "category": "Easy-to-Cook",
+    "srp": 380,
+    "reseller": 350,
+    "dealer": 310
+  },
+  {
+    "id": "lechon-kawali-400g",
+    "name": "Lechon Kawali 400g",
+    "category": "Easy-to-Cook",
+    "srp": 310,
+    "reseller": 280,
+    "dealer": 250
+  },
+  {
+    "id": "boneless-chicken-inasal-1kg",
+    "name": "Boneless Chicken Inasal 1kg",
+    "category": "Easy-to-Cook",
+    "srp": 380,
+    "reseller": 340,
+    "dealer": 300
+  },
+  {
+    "id": "classic-chicken-inasal-leg-quarter-1kg",
+    "name": "Classic Chicken Inasal Leg Quarter 1kg",
+    "category": "Easy-to-Cook",
+    "srp": 290,
+    "reseller": 260,
+    "dealer": 230
+  },
+  {
+    "id": "lechon-belly-1kg",
+    "name": "Lechon Belly 1kg",
+    "category": "Easy-to-Cook",
+    "srp": 530,
+    "reseller": 480,
+    "dealer": 420
+  },
+  {
+    "id": "chicharon-bulaklak-pre-cooked-300g-x5",
+    "name": "Chicharon Bulaklak (Pre-cooked) 300g x5",
+    "category": "Easy-to-Cook",
+    "srp": 800,
+    "reseller": 720,
+    "dealer": 640
+  },
+  {
+    "id": "marinated-liempo-450g",
+    "name": "Marinated Liempo 450g",
+    "category": "Easy-to-Cook",
+    "srp": 230,
+    "reseller": 210,
+    "dealer": 190
+  },
+  {
+    "id": "samgyupsal-bacon-250g",
+    "name": "Samgyupsal Bacon 250g",
+    "category": "Easy-to-Cook",
+    "srp": 170,
+    "reseller": 150,
+    "dealer": 130
+  },
+  {
+    "id": "burger-patties-6pcs",
+    "name": "Burger Patties 6pcs",
+    "category": "Easy-to-Cook",
+    "srp": 130,
+    "reseller": 120,
+    "dealer": 100
+  },
+  {
+    "id": "5-star-shrimp-siomai-240g-8pcs",
+    "name": "5-Star Shrimp Siomai 240g 8pcs",
+    "category": "Dimsum",
+    "srp": 210,
+    "reseller": 180,
+    "dealer": 170
+  },
+  {
+    "id": "5-star-pork-siomai-240g-8pcs",
+    "name": "5-Star Pork Siomai 240g 8pcs",
+    "category": "Dimsum",
+    "srp": 210,
+    "reseller": 180,
+    "dealer": 170
+  },
+  {
+    "id": "5-star-tausi-chicken-feet-6pcs",
+    "name": "5-Star Tausi Chicken Feet 6pcs",
+    "category": "Dimsum",
+    "srp": 180,
+    "reseller": 160,
+    "dealer": 140
+  },
+  {
+    "id": "5-star-premium-bola-bola-siopao-4pcs",
+    "name": "5-Star Premium Bola-bola Siopao 4pcs",
+    "category": "Dimsum",
+    "srp": 290,
+    "reseller": 260,
+    "dealer": 230
+  },
+  {
+    "id": "5-star-premium-asado-siopao-6pcs",
+    "name": "5-Star Premium Asado Siopao 6pcs",
+    "category": "Dimsum",
+    "srp": 220,
+    "reseller": 200,
+    "dealer": 180
+  },
+  {
+    "id": "fiesta-pork-siomai-1kg-60pcs",
+    "name": "Fiesta Pork Siomai 1kg 60pcs",
+    "category": "Sulit Pack",
+    "srp": 310,
+    "reseller": 280,
+    "dealer": 250
+  },
+  {
+    "id": "fiesta-jumbo-japanese-siomai-1kg-60pcs",
+    "name": "Fiesta Jumbo Japanese Siomai 1kg 60pcs",
+    "category": "Sulit Pack",
+    "srp": 360,
+    "reseller": 330,
+    "dealer": 290
+  },
+  {
+    "id": "fiesta-lumpiang-shanghai-26pcs",
+    "name": "Fiesta Lumpiang Shanghai 26pcs",
+    "category": "Sulit Pack",
+    "srp": 180,
+    "reseller": 160,
+    "dealer": 140
+  },
+  {
+    "id": "fiesta-lumpiang-shanghai-1kg-60pcs",
+    "name": "Fiesta Lumpiang Shanghai 1kg 60pcs",
+    "category": "Sulit Pack",
+    "srp": 310,
+    "reseller": 270,
+    "dealer": 240
+  },
+  {
+    "id": "fiesta-shark-s-fin-1kg-60pcs",
+    "name": "Fiesta Shark's Fin 1kg 60pcs",
+    "category": "Sulit Pack",
+    "srp": 350,
+    "reseller": 310,
+    "dealer": 280
+  },
+  {
+    "id": "fiesta-chicken-nuggets-20pcs",
+    "name": "Fiesta Chicken Nuggets 20pcs",
+    "category": "Sulit Pack",
+    "srp": 250,
+    "reseller": 220,
+    "dealer": 200
+  },
+  {
+    "id": "fiesta-cheese-sticks-30pcs-x5",
+    "name": "Fiesta Cheese Sticks 30pcs x5",
+    "category": "Sulit Pack",
+    "srp": 440,
+    "reseller": 400,
+    "dealer": 350
+  },
+  {
+    "id": "fiesta-sliced-ham-1kg-200g-x5",
+    "name": "Fiesta Sliced Ham 1kg (200g x5)",
+    "category": "Sulit Pack",
+    "srp": 420,
+    "reseller": 380,
+    "dealer": 330
+  },
+  {
+    "id": "premium-muscle-ham-sliced-200g-x5",
+    "name": "Premium Muscle Ham (Sliced) 200g x5",
+    "category": "Sulit Pack",
+    "srp": 670,
+    "reseller": 600,
+    "dealer": 530
+  }
+]

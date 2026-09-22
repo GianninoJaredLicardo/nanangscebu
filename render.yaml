@@ -1,0 +1,21 @@
+# Render Blueprint: free web service in Singapore (closest to Cebu).
+services:
+  - type: web
+    name: nanangs-inventory
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 60
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD_HASH
+        sync: false   # paste the value from make_password.py
+      - key: FIREBASE_CREDENTIALS
+        sync: false   # paste the whole text of your serviceAccountKey.json

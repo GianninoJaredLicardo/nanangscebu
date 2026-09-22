@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head"><h1>Stock in</h1></header>
+<div class="grid-2">
+  <form class="panel" method="post" id="restockForm">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <h2>Add delivered stock</h2>
+    {% if products %}
+    <label>Product
+      <select name="product" id="rsProduct" required>
+        <option value="">Choose a product</option>
+        {% for c in cats %}<optgroup label="{{ c }}">
+          {% for p in products if p.category == c %}<option value="{{ p.id }}" data-stock="{{ p.stock or 0 }}" {{ 'selected' if p.id == selected }}>{{ p.name }}</option>{% endfor %}
+        </optgroup>{% endfor %}
+      </select>
+    </label>
+    <p class="muted small" id="rsCurrent"></p>
+    <div class="field-row">
+      <label>Packs received<input name="qty" type="number" min="1" step="1" required inputmode="numeric" {{ 'autofocus' if selected }}></label>
+      <label>Note<input name="note" value="{{ note }}" maxlength="200" placeholder="e.g. Delivery from supplier"></label>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">Add to stock</button>
+    {% else %}
+    <p class="empty">No products yet. <a class="link-btn" href="{{ url_for('products') }}">Load your price list first</a></p>
+    {% endif %}
+  </form>
+  <div class="panel">
+    <h2>Stock added today</h2>
+    {% if today_logs %}
+      <ul class="rows">
+      {% for l in today_logs %}
+        <li><span class="row-main"><span>{{ l.name }}</span><span class="muted small">{{ l.createdAt|time }}, {{ l.note }}</span></span><span class="plus">+{{ l.change }}</span></li>
+      {% endfor %}
+      </ul>
+      <p class="muted small">{{ today_logs|sum(attribute='change') }} packs added today.</p>
+    {% else %}
+      <p class="empty">Nothing added yet today.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

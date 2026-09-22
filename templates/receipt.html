@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head no-print">
+  <h1>{{ 'Sale saved' if new and s.status != 'voided' else 'Order ' ~ s.orderNo }}</h1>
+  <div class="head-actions">
+    <a class="btn" href="{{ url_for('sales') }}">All sales</a>
+    <a class="btn btn-primary" href="{{ url_for('order') }}">New order</a>
+  </div>
+</header>
+<div class="receipt-page">
+  <div class="panel receipt">
+    <div class="receipt-top">
+      <span class="brand">{{ SETTINGS.shop_name }}</span>
+      <p class="muted small">{{ SETTINGS.tagline }}</p>
+      {% if SETTINGS.contact %}<p class="small">{{ SETTINGS.contact }}</p>{% endif %}
+    </div>
+    {% if s.status == 'voided' %}<div class="void-stamp">VOIDED{% if s.voidedAt %} on {{ s.voidedAt|dt }}{% endif %}. Stock was returned.</div>{% endif %}
+    <dl class="receipt-meta">
+      <dt>Order no.</dt><dd>{{ s.orderNo }}</dd>
+      <dt>Date and time</dt><dd>{{ s.createdAt|dt }}</dd>
+      <dt>Buyer</dt><dd>{{ s.buyer }}</dd>
+      {% if s.contact %}<dt>Contact</dt><dd>{{ s.contact }}</dd>{% endif %}
+      <dt>Price level</dt><dd>{{ TIER_LABEL[s.tier] }}</dd>
+    </dl>
+    <table>
+      <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
+      <tbody>{% for i in s["items"] %}<tr><td>{{ i.name }}</td><td class="num">{{ i.qty }}</td><td class="num">{{ i.price|peso }}</td><td class="num">{{ i.subtotal|peso }}</td></tr>{% endfor %}</tbody>
+    </table>
+    <div class="tot-row" style="margin-top:8px"><span>Subtotal ({{ s.packs }} packs)</span><span>{{ s.subtotal|peso }}</span></div>
+    {% if s.discount %}<div class="tot-row"><span>Discount</span><span>−{{ s.discount|peso }}</span></div>{% endif %}
+    <div class="grand-line"><b>Total</b><strong>{{ s.total|peso }}</strong></div>
+    <div class="tot-row"><span>Payment</span><span>{{ s.payMethod }}</span></div>
+    {% if s.amountPaid is not none %}
+      <div class="tot-row"><span>Amount received</span><span>{{ s.amountPaid|peso }}</span></div>
+      <div class="tot-row"><span>Change</span><span>{{ s.change|peso }}</span></div>
+    {% endif %}
+    {% if s.note %}<p class="small"><b>Note:</b> {{ s.note }}</p>{% endif %}
+    <p class="center muted small">Thank you for your order!</p>
+  </div>
+  <div class="modal-actions no-print">
+    {% if s.status != 'voided' %}
+    <form method="post" action="{{ url_for('void', sid=s.id) }}" data-confirm="Void order {{ s.orderNo }}? This cancels the {{ s.total|peso }} sale and returns {{ s.packs }} packs to stock.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="btn btn-danger" type="submit">Void order</button>
+    </form>
+    {% endif %}
+    <span class="spacer"></span>
+    <button class="btn btn-primary" type="button" onclick="window.print()">Print receipt</button>
+  </div>
+</div>
+{% endblock %}

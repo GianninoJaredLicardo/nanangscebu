@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head">
+  <h1>Stock log</h1>
+  <form method="get"><select name="type" aria-label="Filter log" onchange="this.form.submit()">
+    {% for key, label in [('all','All movements'),('sale','Sold'),('in','Stock in'),('adjust','Adjustments'),('void','Voided orders')] %}
+      <option value="{{ key }}" {{ 'selected' if kind == key }}>{{ label }}</option>
+    {% endfor %}
+  </select></form>
+</header>
+<p class="muted">The latest 300 stock movements.</p>
+{% if logs %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Date and time</th><th>Product</th><th>Movement</th><th class="num">Change</th><th class="num">Stock after</th><th>Note</th></tr></thead>
+  <tbody>
+  {% for l in logs %}
+    <tr>
+      <td>{{ l.createdAt|dt }}</td>
+      <td class="name">{{ l.name }}</td>
+      <td>{{ LOG_LABEL.get(l.type, l.type) }}</td>
+      <td class="num {{ 'plus' if l.change > 0 else 'minus' }}">{{ '+' if l.change > 0 }}{{ l.change }}</td>
+      <td class="num">{{ l.after }}</td>
+      <td class="muted">{{ l.note }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="empty">No stock movements yet.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head">
+  <h1>Sales</h1>
+  <div class="head-actions"><a class="btn" href="{{ url_for('sales_export', **{'from': f, 'to': to}) }}">Export sales (CSV)</a></div>
+</header>
+<form class="toolbar" method="get" id="rangeForm">
+  <label class="inline">From<input type="date" name="from" value="{{ f }}"></label>
+  <label class="inline">To<input type="date" name="to" value="{{ to }}"></label>
+  <noscript><button class="btn" type="submit">Show</button></noscript>
+  <div class="quick">
+    {% for key, label in [('today','Today'),('yesterday','Yesterday'),('week','Last 7 days'),('month','This month')] %}
+      <a class="chip {{ 'on' if rng == key }}" href="{{ url_for('sales', range=key) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</form>
+<dl class="stat-strip">
+  <div><dt>Total sales</dt><dd>{{ stats.total|peso }}</dd></div>
+  <div><dt>Orders{% if stats.voided %} ({{ stats.voided }} voided){% endif %}</dt><dd>{{ stats.orders }}</dd></div>
+  <div><dt>Packs sold</dt><dd>{{ stats.packs|num }}</dd></div>
+  <div><dt>Average order</dt><dd>{{ stats.avg|peso }}</dd></div>
+</dl>
+<div class="grid-2 wide-left">
+  <div class="panel"><h2>Orders</h2>
+    {% if rows %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{ 'Date and time' if multi_day else 'Time' }}</th><th>Buyer</th><th>Price</th><th class="num">Packs</th><th class="num">Total</th><th></th></tr></thead>
+      <tbody>
+      {% for s in rows %}
+        <tr class="{{ 'voided' if s.status == 'voided' }}">
+          <td>{{ s.createdAt|dt if multi_day else s.createdAt|time }}<div class="muted small">{{ s.orderNo }}</div></td>
+          <td>{{ s.buyer }}{% if s.status == 'voided' %} <span class="badge void">Voided</span>{% endif %}</td>
+          <td><span class="badge tier">{{ TIER_LABEL[s.tier] }}</span></td>
+          <td class="num">{{ s.packs }}</td>
+          <td class="num"><b>{{ s.total|peso }}</b></td>
+          <td><a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">View</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">No orders in this period.</p>{% endif %}
+  </div>
+  <div class="panel"><h2>Items sold</h2>
+    {% if items %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Product</th><th class="num">Packs</th><th class="num">Amount</th></tr></thead>
+      <tbody>{% for i in items %}<tr><td>{{ i.name }}</td><td class="num">{{ i.qty }}</td><td class="num">{{ i.amount|peso }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="empty">Nothing sold in this period.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

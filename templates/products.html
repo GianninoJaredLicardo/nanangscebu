@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head">
+  <h1>Products</h1>
+  <div class="head-actions">
+    {% if products %}
+    <a class="btn" href="{{ url_for('products_export') }}">Export stock (CSV)</a>
+    <a class="btn" href="{{ url_for('backup') }}">Download backup</a>
+    {% endif %}
+    <a class="btn btn-primary" href="{{ url_for('product_new') }}">Add product</a>
+  </div>
+</header>
+{% if not products %}
+<div class="seed">
+  <h2>Your product list is empty</h2>
+  <p>Load all 50 products from your Nanang's price list with their SRP, Reseller and Dealer prices. Stock starts at 0, then add your stock in Stock in.</p>
+  <form method="post" action="{{ url_for('product_seed') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="btn btn-primary" type="submit">Load Nanang's price list</button>
+  </form>
+  <p class="small" style="margin-top:12px">or <a class="link-btn" href="{{ url_for('product_new') }}">add products one by one</a></p>
+</div>
+{% else %}
+<div class="toolbar" id="prodFilters">
+  <input id="prodSearch" type="search" placeholder="Search products" aria-label="Search products">
+  <select id="prodCat" aria-label="Category">
+    <option value="all">All categories</option>
+    {% for c in cats %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+  </select>
+  <select id="prodStock" aria-label="Stock filter">
+    <option value="all">All stock levels</option>
+    <option value="low" {{ 'selected' if stock_filter == 'low' }}>Low or out of stock</option>
+    <option value="out" {{ 'selected' if stock_filter == 'out' }}>Out of stock</option>
+  </select>
+</div>
+<p class="muted">{{ products|length }} products, {{ packs|num }} packs on hand, {{ low_count }} low or out of stock.</p>
+<div class="table-wrap"><table id="prodTable">
+  <thead><tr><th>Product</th><th>Category</th><th class="num">SRP</th><th class="num">Reseller</th><th class="num">Dealer</th><th class="num">Stock</th><th></th></tr></thead>
+  <tbody>
+  {% for p in products %}
+    <tr data-name="{{ p.name|lower }}" data-cat="{{ p.category }}" data-stock="{{ stock_state(p) }}">
+      <td class="name">{{ p.name }}</td>
+      <td>{{ p.category }}</td>
+      <td class="num">{{ p.srp|peso }}</td>
+      <td class="num">{{ p.reseller|peso }}</td>
+      <td class="num">{{ p.dealer|peso }}</td>
+      <td class="num">{% include "_stock_badge.html" %}</td>
+      <td><div class="actions">
+        <a class="btn" href="{{ url_for('restock', product=p.id) }}">Stock in</a>
+        <a class="btn" href="{{ url_for('product_edit', pid=p.id) }}">Edit</a>
+      </div></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="empty" id="prodEmpty" hidden>No products match these filters.</p>
+{% endif %}
+{% endblock %}

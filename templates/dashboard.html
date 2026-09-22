@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head">
+  <div><h1>Today</h1><p class="muted">{{ today }}</p></div>
+  <a class="btn btn-primary" href="{{ url_for('order') }}">New order</a>
+</header>
+<div class="today">
+  <div class="today-main">
+    <span class="muted">Sales today</span>
+    <strong class="big-num">{{ stats.sales|peso }}</strong>
+  </div>
+  <dl class="today-stats">
+    <div><dt>Orders</dt><dd>{{ stats.orders }}</dd></div>
+    <div><dt>Packs sold</dt><dd>{{ stats.packs|num }}</dd></div>
+    <div><dt>Stock on hand</dt><dd>{{ stats.stock|num }}</dd></div>
+    <div><dt>Stock value at dealer price</dt><dd>{{ stats.value|peso }}</dd></div>
+  </dl>
+</div>
+<div class="grid-2">
+  <div class="panel">
+    <h2>Low stock</h2>
+    {% if not products %}
+      <p class="empty">No products yet. <a class="link-btn" href="{{ url_for('products') }}">Load your price list</a></p>
+    {% elif low %}
+      <ul class="rows">
+      {% for p in low[:10] %}
+        <li><span class="row-main"><span>{{ p.name }}</span><span class="muted small">{{ p.category }}</span></span>{% include "_stock_badge.html" %}</li>
+      {% endfor %}
+      </ul>
+      {% if low|length > 10 %}<p class="small"><a class="link-btn" href="{{ url_for('products', stock='low') }}">See all {{ low|length }} low products</a></p>{% endif %}
+    {% else %}
+      <p class="empty">Every product is above its low-stock level.</p>
+    {% endif %}
+  </div>
+  <div class="panel">
+    <h2>Orders today</h2>
+    {% if sales %}
+      <ul class="rows">
+      {% for s in sales[:8] %}
+        <li>
+          <span class="row-main"><span>{{ s.buyer }}</span><span class="muted small">{{ s.createdAt|time }}, {{ s.packs }} packs, {{ TIER_LABEL[s.tier] }}</span></span>
+          <span>{% if s.status == 'voided' %}<span class="badge void">Voided</span>{% else %}<b class="num">{{ s.total|peso }}</b>{% endif %}
+            <a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">View</a></span>
+        </li>
+      {% endfor %}
+      </ul>
+      {% if sales|length > 8 %}<p class="small"><a class="link-btn" href="{{ url_for('sales') }}">See all {{ sales|length }} orders</a></p>{% endif %}
+    {% else %}
+      <p class="empty">No orders yet today. <a class="link-btn" href="{{ url_for('order') }}">Start a new order</a></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

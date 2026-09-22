@@ -1,0 +1,2 @@
+{%- set st = stock_state(p) -%}
+<span class="badge {{ st }}">{% if st == 'out' %}Out of stock{% elif st == 'low' %}{{ p.stock }} left{% else %}{{ p.stock }} in stock{% endif %}</span>

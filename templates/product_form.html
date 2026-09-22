@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head"><h1>{{ 'Add product' if is_new else 'Edit product' }}</h1></header>
+<form class="panel form-panel" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  {% if errors %}<div class="form-errors" role="alert">{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
+  <label>Product name<input name="name" required maxlength="150" value="{{ p.name if p }}" placeholder="e.g. Pork Adobo 425g"></label>
+  <label>Category<input name="category" list="catList" required maxlength="60" value="{{ p.category if p }}" placeholder="e.g. Ready-to-Heat">
+    <datalist id="catList">{% for c in cats|unique %}<option value="{{ c }}">{% endfor %}</datalist></label>
+  <div class="grid-3">
+    <label>SRP<input name="srp" type="number" min="0" step="0.01" required value="{{ p.srp if p }}" inputmode="decimal"></label>
+    <label>Reseller<input name="reseller" type="number" min="0" step="0.01" required value="{{ p.reseller if p }}" inputmode="decimal"></label>
+    <label>Dealer<input name="dealer" type="number" min="0" step="0.01" required value="{{ p.dealer if p }}" inputmode="decimal"></label>
+  </div>
+  <div class="field-row">
+    <label>{{ 'Starting stock' if is_new else 'Stock on hand' }}<input name="stock" type="number" min="0" step="1" required value="{{ p.stock if p else 0 }}" inputmode="numeric"></label>
+    <label>Low-stock alert at<input name="lowStock" type="number" min="0" step="1" value="{{ p.lowStock if p and p.lowStock is not none else SETTINGS.low_stock }}" inputmode="numeric"></label>
+  </div>
+  {% if not is_new %}
+  <label>Reason if you change the stock<input name="reason" maxlength="200" placeholder="e.g. Monthly count, spoiled, freebie"></label>
+  <p class="muted small">To add a delivery, use Stock in instead so it's recorded as a delivery.</p>
+  {% endif %}
+  <div class="modal-actions">
+    <a class="btn" href="{{ url_for('products') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ 'Add product' if is_new else 'Save changes' }}</button>
+  </div>
+</form>
+{% if not is_new %}
+<form class="danger-zone" method="post" action="{{ url_for('product_delete', pid=p.id) }}" data-confirm="Delete {{ p.name }}? Past orders and stock log entries keep its name.">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <button class="btn btn-danger" type="submit">Delete product</button>
+</form>
+{% endif %}
+{% endblock %}
