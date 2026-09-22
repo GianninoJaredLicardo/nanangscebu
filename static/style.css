@@ -361,6 +361,51 @@ tr.voided td:last-child, tr.voided td .badge { text-decoration: none; }
   .pick-list { grid-template-columns: 1fr; }
   .toast { bottom: 90px; }
 }
+@media (max-width: 600px) {
+  .main { padding: 16px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
+  .view-head { align-items: stretch; margin-bottom: 14px; }
+  .view-head h1 { font-size: 25px; }
+  .view-head > .btn, .head-actions, .head-actions .btn { width: 100%; }
+  .head-actions { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .panel { padding: 14px; border-radius: 12px; }
+  .toolbar { align-items: stretch; gap: 8px; }
+  .toolbar > input[type=search], .toolbar > select { width: 100%; flex-basis: 100%; }
+  .toolbar label.inline { flex: 1 1 0; min-width: 0; }
+  .toolbar label.inline input { min-width: 0; }
+  .quick { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .quick .chip { flex: 0 0 auto; }
+  .today { border-radius: 14px; }
+  .today-main { padding: 18px; }
+  .today-stats div { padding: 14px 12px; }
+  .today-stats dd { font-size: 21px; }
+  .stat-strip { gap: 7px; }
+  .stat-strip div { padding: 11px 12px; border-radius: 11px; }
+  .stat-strip dd { font-size: 22px; }
+  .order-layout { gap: 12px; }
+  .picker { padding: 12px; }
+  .pick-list { gap: 6px; }
+  .pick { min-height: 68px; padding: 12px 10px; }
+  .ticket { padding: 16px 14px 26px; border-radius: 14px 14px 0 0; }
+  .ticket .field-row { grid-template-columns: 1fr; gap: 0; }
+  .tier-row { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .seg { width: 100%; }
+  .seg button { flex: 1; min-height: 40px; }
+  .cart-list { max-height: none; }
+  .qty button { width: 38px; height: 38px; }
+  .qty input { width: 52px; min-height: 38px; }
+  .ticket .btn-lg { min-height: 50px; }
+  .table-wrap { margin-inline: -2px; max-width: calc(100% + 4px); -webkit-overflow-scrolling: touch; }
+  table { min-width: 610px; }
+  .panel .table-wrap table { min-width: 480px; }
+  .receipt-page { width: 100%; }
+  .receipt-meta dd { overflow-wrap: anywhere; }
+  .modal-actions { align-items: stretch; }
+  .modal-actions > *, .modal-actions form, .modal-actions .btn { width: 100%; }
+  .modal-actions .spacer { display: none; }
+  .sidebar { padding-left: 3px; padding-right: 3px; }
+  .nav-btn { min-width: 72px; min-height: 58px; font-size: 10px; }
+  .nav-btn svg { width: 19px; height: 19px; }
+}
 @media (max-width: 420px) {
   .field-row, .grid-3 { grid-template-columns: 1fr; }
   .seg button { padding: 6px 8px; }

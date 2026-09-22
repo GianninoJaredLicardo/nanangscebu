@@ -63,7 +63,7 @@ You don't need Firebase Authentication or Firebase Hosting for this version.
    python app.py
    ```
    Open http://localhost:5000 and log in with username `admin` and your password.
-6. Go to **Products** and click **Load Nanang's price list**, then enter your current stock in **Stock in**.
+6. Log in with username `nanangsadmin` and password `nanangscebu`. Go to **Products** and click **Load Nanang's price list**, then enter your current stock in **Stock in**.
 
 Your data is saved in Firebase, so it will still be there after you put the app online.
 

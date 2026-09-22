@@ -12,7 +12,6 @@ from datetime import datetime, timedelta, timezone
 from flask import (Flask, Response, abort, flash, jsonify, redirect, render_template, request,
                    session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.security import check_password_hash
 
 try:  # load .env when running on your own computer
     from dotenv import load_dotenv
@@ -164,7 +163,7 @@ app.jinja_env.globals.update(
 # ------------------------------------------------------------------
 # Security: login, CSRF, login rate limit
 # ------------------------------------------------------------------
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "nanangsadmin").strip().lower()
+ADMIN_USERNAME = "nanangsadmin"
 BUILT_IN_ADMIN_PASSWORD = "nanangscebu"
 
 
@@ -178,11 +177,7 @@ app.jinja_env.globals["csrf_token"] = csrf_token
 
 
 def password_ok(pw):
-    h = os.environ.get("ADMIN_PASSWORD_HASH", "").strip()
-    if h:
-        return check_password_hash(h, pw)
-    plain = os.environ.get("ADMIN_PASSWORD", BUILT_IN_ADMIN_PASSWORD).strip()
-    return bool(plain) and hmac.compare_digest(plain.encode(), pw.encode())
+    return hmac.compare_digest(BUILT_IN_ADMIN_PASSWORD.encode(), pw.encode())
 
 
 PUBLIC = {"login", "static", "healthz"}
