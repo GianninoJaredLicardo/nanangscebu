@@ -20,8 +20,9 @@
 
   function renderProducts() {
     const category = $("#draftCategory").value;
+    const search = $("#draftProductSearch").value.trim().toLowerCase();
     const current = $("#draftProduct").value;
-    const list = products.filter((p) => category === "All" || p.category === category);
+    const list = products.filter((p) => (category === "All" || p.category === category) && (!search || p.name.toLowerCase().includes(search)));
     $("#draftProduct").innerHTML = list.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
     if (list.some((p) => p.id === current)) $("#draftProduct").value = current;
   }
@@ -65,16 +66,16 @@
     ctx.fillText(`Price level: ${tierMode.toUpperCase()}`, 54, 136);
     ctx.strokeStyle = "#F7D6E6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(54, 164); ctx.lineTo(946, 164); ctx.stroke();
     ctx.fillStyle = "#3A1D2B"; ctx.font = "700 18px Arial";
-    ctx.fillText("Product", 54, 198); ctx.fillText("Qty", 700, 198); ctx.fillText("Amount", 830, 198);
+    ctx.fillText("Product", 54, 198); ctx.textAlign = "right"; ctx.fillText("Qty", 750, 198); ctx.fillText("Amount", 946, 198);
     ctx.font = "18px Arial";
-    lines.forEach((l, i) => { const y = 238 + i * lineHeight; ctx.fillText(l.name.slice(0, 42), 54, y); ctx.fillText(String(l.qty), 710, y); ctx.fillText(peso(l.subtotal), 830, y); });
+    ctx.textAlign = "left";
+    lines.forEach((l, i) => { const y = 238 + i * lineHeight; ctx.fillText(l.name.slice(0, 42), 54, y); ctx.textAlign = "right"; ctx.fillText(String(l.qty), 750, y); ctx.fillText(peso(l.subtotal), 946, y); ctx.textAlign = "left"; });
     const y = 260 + lines.length * lineHeight;
     ctx.strokeStyle = "#F7D6E6"; ctx.beginPath(); ctx.moveTo(54, y); ctx.lineTo(946, y); ctx.stroke();
-    ctx.fillText(`Subtotal (${lines.reduce((sum, l) => sum + l.qty, 0)} packs)`, 54, y + 42); ctx.fillText(peso(subtotal), 830, y + 42);
-    if (discount) { ctx.fillText("Discount", 54, y + 76); ctx.fillText("-" + peso(discount), 830, y + 76); }
-    ctx.fillStyle = "#D81B7A"; ctx.font = "700 30px Georgia"; ctx.fillText("TOTAL", 54, y + 124); ctx.fillText(peso(total), 830, y + 124);
+    ctx.fillText(`Subtotal (${lines.reduce((sum, l) => sum + l.qty, 0)} packs)`, 54, y + 42); ctx.textAlign = "right"; ctx.fillText(peso(subtotal), 946, y + 42); ctx.textAlign = "left";
+    if (discount) { ctx.fillText("Discount", 54, y + 76); ctx.textAlign = "right"; ctx.fillText("-" + peso(discount), 946, y + 76); ctx.textAlign = "left"; }
+    ctx.fillStyle = "#D81B7A"; ctx.font = "700 30px Georgia"; ctx.fillText("TOTAL", 54, y + 124); ctx.textAlign = "right"; ctx.fillText(peso(total), 946, y + 124); ctx.textAlign = "left";
     if (note) { ctx.fillStyle = "#8C6677"; ctx.font = "18px Arial"; ctx.fillText(("Note: " + note).slice(0, 80), 54, y + 166); }
-    ctx.fillStyle = "#8C6677"; ctx.font = "16px Arial"; ctx.fillText("Draft estimate - not a completed sale", 54, height - 34);
     const link = document.createElement("a");
     link.download = `draft-quote.${type === "image/jpeg" ? "jpg" : "png"}`;
     link.href = canvas.toDataURL(type, 0.92);
@@ -82,6 +83,7 @@
   }
 
   $("#draftCategory").addEventListener("change", renderProducts);
+  $("#draftProductSearch").addEventListener("input", renderProducts);
   $("#addDraftProduct").addEventListener("click", () => {
     const id = $("#draftProduct").value;
     if (id) cart.set(id, (cart.get(id) || 0) + num($("#draftQty").value));
@@ -92,7 +94,6 @@
   $("#draftLines").addEventListener("change", (e) => { if (e.target.dataset.act === "qty") { cart.set(e.target.closest("[data-id]").dataset.id, num(e.target.value)); render(); } });
   $("#draftDiscount").addEventListener("input", render);
   $("#printDraft").addEventListener("click", () => window.print());
-  $("#downloadPng").addEventListener("click", () => downloadImage("image/png"));
   $("#downloadJpeg").addEventListener("click", () => downloadImage("image/jpeg"));
   renderProducts(); render();
 })();

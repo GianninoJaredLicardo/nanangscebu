@@ -5,7 +5,6 @@
   <div><h1>Draft quote</h1><p class="muted">Compute an estimate without checking or changing stock.</p></div>
   <div class="head-actions draft-actions">
     <button class="btn" type="button" id="printDraft">Print</button>
-    <button class="btn" type="button" id="downloadPng">Download PNG</button>
     <button class="btn" type="button" id="downloadJpeg">Download JPEG</button>
   </div>
 </header>
@@ -17,6 +16,7 @@
   <section class="panel draft-picker no-print">
     <h2>Add products</h2>
     <label>Category<select id="draftCategory"><option value="All">All categories</option>{% for c in cats %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></label>
+    <label>Search product<input id="draftProductSearch" type="search" placeholder="Type a product name" autocomplete="off"></label>
     <label>Product<select id="draftProduct" required></select></label>
     <label>Quantity<select id="draftQty">{% for qty in range(1, 101) %}<option value="{{ qty }}">{{ qty }}</option>{% endfor %}</select></label>
     <button class="btn btn-primary btn-block" type="button" id="addDraftProduct">Add to draft</button>
