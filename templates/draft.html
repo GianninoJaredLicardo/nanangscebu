@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Draft quote - {{ SETTINGS.shop_name }}{% endblock %}
+{% block content %}
+<header class="view-head no-print">
+  <div><h1>Draft quote</h1><p class="muted">Compute an estimate without checking or changing stock.</p></div>
+  <div class="head-actions draft-actions">
+    <button class="btn" type="button" id="printDraft">Print</button>
+    <button class="btn" type="button" id="downloadPng">Download PNG</button>
+    <button class="btn" type="button" id="downloadJpeg">Download JPEG</button>
+  </div>
+</header>
+{% if not products %}
+  <div class="seed"><h2>No products yet</h2><p>Load your price list first, then use Draft quote to prepare estimates.</p>
+  <a class="btn btn-primary" href="{{ url_for('products') }}">Go to Products</a></div>
+{% else %}
+<div class="draft-layout">
+  <section class="panel draft-picker no-print">
+    <h2>Add products</h2>
+    <label>Category<select id="draftCategory"><option value="All">All categories</option>{% for c in cats %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></label>
+    <label>Product<select id="draftProduct" required></select></label>
+    <label>Quantity<select id="draftQty">{% for qty in range(1, 101) %}<option value="{{ qty }}">{{ qty }}</option>{% endfor %}</select></label>
+    <button class="btn btn-primary btn-block" type="button" id="addDraftProduct">Add to draft</button>
+    <p class="muted small">Stock is not checked for drafts. This is only a price estimate.</p>
+  </section>
+
+  <section class="draft-sheet" id="draftSheet" data-shop-name="{{ SETTINGS.shop_name }}" aria-label="Draft quote">
+    <div class="draft-sheet-head">
+      <div><span class="brand">{{ SETTINGS.shop_name }}</span><p class="muted small">Draft quote · {{ today }}</p></div>
+      <strong>ESTIMATE</strong>
+    </div>
+    <div class="draft-details">
+      <label>Customer<input id="draftCustomer" placeholder="Optional"></label>
+      <label>Note<input id="draftNote" placeholder="Optional"></label>
+    </div>
+    <div class="tier-row">
+      <span class="label-text">Price level</span>
+      <div class="seg" id="draftTier" role="group" aria-label="Price level">
+        <button type="button" data-tier="srp" class="on">SRP</button>
+        <button type="button" data-tier="reseller">Reseller</button>
+        <button type="button" data-tier="dealer">Dealer</button>
+      </div>
+    </div>
+    <div id="draftLines" class="draft-lines"><p class="empty">Add products to calculate an estimate.</p></div>
+    <div class="totals">
+      <div class="tot-row"><span>Subtotal (<span id="draftPacks">0</span> packs)</span><span id="draftSubtotal">₱0</span></div>
+      <div class="tot-row no-print"><label for="draftDiscount">Discount</label><input id="draftDiscount" type="number" min="0" step="1" value="0" inputmode="decimal"></div>
+      <div class="tot-row grand"><span>Total</span><strong id="draftTotal">₱0</strong></div>
+    </div>
+    <p class="draft-foot">This is a draft estimate, not a completed sale.</p>
+  </section>
+</div>
+<script id="draft-products-data" type="application/json">{{ products|tojson }}</script>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if products %}<script src="{{ url_for('static', filename='draft.js') }}"></script>{% endif %}{% endblock %}

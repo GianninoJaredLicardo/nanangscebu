@@ -269,6 +269,15 @@ def order():
     return render_template("order.html", products=data, cats=categories(products))
 
 
+@app.route("/draft")
+def draft():
+    products = sort_products(db().list_products())
+    data = [{"id": p["id"], "name": p["name"], "category": p.get("category", ""),
+             "srp": p.get("srp") or 0, "reseller": p.get("reseller") or 0,
+             "dealer": p.get("dealer") or 0} for p in products]
+    return render_template("draft.html", products=data, cats=categories(products), today=date_key())
+
+
 def order_number():
     return now_ph().strftime("%y%m%d") + "-" + secrets.token_hex(2).upper()
 
