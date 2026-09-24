@@ -45,7 +45,17 @@
     $("#draftTotal").textContent = peso(subtotal - discount);
   }
 
-  function downloadImage(type) {
+  function loadLogo() {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = $("#draftSheet").dataset.logo;
+    });
+  }
+
+  async function downloadImage(type) {
+    const logo = await loadLogo();
     const lines = selectedLines();
     const subtotal = lines.reduce((sum, l) => sum + l.subtotal, 0);
     const discount = Math.min(Math.max(num($("#draftDiscount").value), 0), subtotal);
@@ -55,13 +65,17 @@
     const canvas = document.createElement("canvas");
     const width = 1000;
     const lineHeight = 38;
-    const height = Math.max(560, 330 + lines.length * lineHeight);
+    const headShift = 70;
+    const height = Math.max(630, 400 + lines.length * lineHeight);
     canvas.width = width * 2; canvas.height = height * 2;
     const ctx = canvas.getContext("2d");
     ctx.scale(2, 2);
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#5A0F36"; ctx.font = "700 34px Georgia"; ctx.fillText(shopName, 54, 62);
-    ctx.fillStyle = "#8C6677"; ctx.font = "18px Arial"; ctx.fillText("DRAFT QUOTE", 750, 62);
+    let nameX = 54;
+    if (logo) { ctx.drawImage(logo, 54, 26, 250, 96); nameX = 326; }
+    ctx.fillStyle = "#5A0F36"; ctx.font = "700 19px Georgia"; ctx.fillText(shopName, nameX, 66);
+    ctx.fillStyle = "#8C6677"; ctx.font = "18px Arial"; ctx.fillText("DRAFT QUOTE", nameX, 96);
+    ctx.translate(0, headShift);
     ctx.fillText(customer, 54, 104);
     ctx.fillText(`Price level: ${tierMode.toUpperCase()}`, 54, 136);
     ctx.strokeStyle = "#F7D6E6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(54, 164); ctx.lineTo(946, 164); ctx.stroke();

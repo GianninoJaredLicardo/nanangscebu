@@ -1,4 +1,4 @@
-# Nanang's Inventory and Sales (Flask + Firebase)
+# Nanang's Authentic Recipes Mandaue - Cebu Distributor: Inventory and Sales (Flask + Firebase)
 
 A web-based inventory system for your frozen products business.
 
@@ -13,7 +13,7 @@ A web-based inventory system for your frozen products business.
 - **New order:** tap products, set quantities, and it computes the total. It picks the price level automatically (SRP, Reseller from ₱2,000, Dealer from ₱5,000) or you can choose. Handles discount, payment method, amount received and change.
 - **Complete sale:** the server re-checks prices and stock, deducts the stock, and saves the order with the date and time, all in one step. If there isn't enough stock, the sale is blocked.
 - **Receipt:** printable receipt for every order. Void an order and the stock goes back.
-- **Products:** all 50 Nanang's products with SRP, Reseller and Dealer prices, stock count and low-stock alerts.
+- **Products:** all 50 Nanang's Authentic Recipes products with SRP, Reseller and Dealer prices, stock count and low-stock alerts.
 - **Stock in:** record deliveries.
 - **Sales:** today, yesterday, last 7 days, this month or any dates, with totals, packs sold and best-selling items. Export to CSV (opens in Excel).
 - **Stock log:** every stock movement with date and time.
@@ -63,7 +63,7 @@ You don't need Firebase Authentication or Firebase Hosting for this version.
    python app.py
    ```
    Open http://localhost:5000 and log in with username `admin` and your password.
-6. Log in with username `nanangsadmin` and password `nanangscebu`. Go to **Products** and click **Load Nanang's price list**, then enter your current stock in **Stock in**.
+6. Log in with username `nanangsadmin` and password `nanangscebu`. Go to **Products** and click **Load Price List**, then enter your current stock in **Stock in**.
 
 Your data is saved in Firebase, so it will still be there after you put the app online.
 
@@ -116,7 +116,7 @@ On Render: **your service > Environment**, then save (it restarts automatically)
 | `RESELLER_MIN` | Order amount for Reseller price | `2000` |
 | `DEALER_MIN` | Order amount for Dealer price | `5000` |
 | `LOW_STOCK` | Default low-stock alert level | `5` |
-| `SHOP_NAME`, `SHOP_CONTACT` | Shown on receipts | `Nanang's`, `0961 565 5590` |
+| `SHOP_CONTACT` | Shown on receipts | `0961 565 5590` |
 
 To **change your password**, run `python make_password.py` and replace `ADMIN_PASSWORD_HASH` on Render.
 

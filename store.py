@@ -222,6 +222,22 @@ class FirestoreStore:
         q = self.logs.order_by("createdAt", direction=firestore.Query.DESCENDING).limit(limit)
         return [_doc(s) for s in q.stream()]
 
+    def delete_log(self, lid):
+        self.logs.document(lid).delete()
+
+    def clear_logs(self):
+        """Delete every stock log entry (stock counts are not touched). Returns how many were removed."""
+        total = 0
+        while True:
+            refs = [s.reference for s in self.logs.select([]).limit(400).stream()]
+            if not refs:
+                return total
+            batch = self.db.batch()
+            for ref in refs:
+                batch.delete(ref)
+            batch.commit()
+            total += len(refs)
+
     # ---------------- backup ----------------
     def export_all(self):
         return {

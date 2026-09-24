@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Sign in, {{ SETTINGS.shop_name }} Inventory{% endblock %}
+{% block title %}Sign In - {{ SETTINGS.shop_name }}{% endblock %}
 {% block public %}
 <section class="login">
   <form class="login-card" method="post">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <p class="brand brand-lg">{{ SETTINGS.shop_name }}</p>
-    <p class="login-sub">Inventory and sales</p>
+    <img class="logo logo-lg" src="{{ url_for('static', filename='logo.png') }}" alt="{{ SETTINGS.shop_name }}" width="260" height="100">
+    <p class="login-name">{{ SETTINGS.shop_name|brand }}</p>
+    <p class="login-sub">Inventory and Sales</p>
     <label>Username<input name="username" autocomplete="username" required autofocus></label>
     <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
     <p class="form-error" role="alert">{{ error }}</p>

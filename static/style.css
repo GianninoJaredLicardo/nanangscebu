@@ -92,14 +92,21 @@ input[type=date] { width: auto; }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 .link-btn { background: none; border: 0; color: var(--pink); font-weight: 600; cursor: pointer; padding: 4px; }
 .link-btn:hover { text-decoration: underline; }
+.danger-link { color: var(--out); }
+.log-del form { margin: 0; }
+.log-del { text-align: right; white-space: nowrap; }
 
 /* ---------- login ---------- */
 .login { min-height: 100%; display: grid; place-items: center; padding: 24px;
   background: radial-gradient(circle at 20% 10%, var(--petal-2), transparent 55%), var(--blush); }
 .login-card { width: min(380px, 100%); background: #fff; border-radius: 20px; padding: 32px 28px 22px;
   border: 1.5px solid var(--petal); box-shadow: 0 18px 40px -24px rgba(122, 26, 77, .45); }
-.brand-lg { font-size: 52px; text-align: center; margin: 0; line-height: 1; }
+.logo { display: block; height: auto; }
+.logo-lg { width: 260px; max-width: 85%; margin: 0 auto 10px; }
+.login-name { text-align: center; margin: 0; font-family: var(--serif); font-weight: 700; font-size: 17px; line-height: 1.3; color: var(--plum); }
 .login-sub { text-align: center; color: var(--plum-2); margin: 6px 0 22px; font-weight: 500; }
+.nw { white-space: nowrap; }
+.shop-name { font-family: var(--serif); font-weight: 700; color: var(--plum); line-height: 1.25; }
 
 /* ---------- layout ---------- */
 .app { display: grid; grid-template-columns: 216px 1fr; min-height: 100%; }
@@ -111,7 +118,8 @@ input[type=date] { width: auto; }
   position: sticky; top: 0; height: 100vh;
 }
 .side-brand { padding: 0 12px 22px; display: flex; flex-direction: column; }
-.side-brand .brand { color: #FF7DBB; font-size: 32px; line-height: 1; }
+.side-brand .logo { width: 100%; max-width: 190px; }
+.side-name { color: #FF7DBB; font-family: var(--serif); font-weight: 700; font-size: 13px; line-height: 1.3; margin-top: 10px; }
 .side-sub { font-size: 13px; color: #E7B3CD; margin-top: 4px; }
 .nav-btn {
   display: flex; align-items: center; gap: 12px;
@@ -251,7 +259,10 @@ ul.rows li:last-child { border-bottom: 0; }
 .draft-picker .small { margin: 2px 0 0; }
 .draft-sheet { background: #fff; border: 1.5px solid var(--petal); border-radius: var(--r-md); padding: 28px 32px; box-shadow: 0 16px 34px -22px rgba(90, 15, 54, .35); }
 .draft-sheet-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px dashed var(--petal); padding-bottom: 16px; margin-bottom: 14px; }
-.draft-sheet-head .brand { font-size: 32px; line-height: 1; }
+.draft-brand { display: flex; align-items: center; gap: 14px; }
+.draft-brand .logo { width: 150px; flex: none; }
+.draft-brand .nw { white-space: nowrap; }
+.shop-name { font-size: 18px; }
 .draft-sheet-head p { margin: 5px 0 0; }
 .draft-sheet-head strong { color: var(--pink); letter-spacing: .08em; font-size: 14px; }
 .draft-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -276,6 +287,10 @@ ul.rows li:last-child { border-bottom: 0; }
 
 /* ---------- printable reports ---------- */
 .print-sheet { max-width: 1000px; margin: 0 auto; background: #fff; border: 1.5px solid var(--petal); border-radius: 18px; padding: 24px; }
+.print-brand { display: flex; align-items: center; gap: 14px; }
+.print-brand .logo { width: 130px; flex: none; }
+.print-brand .nw { white-space: nowrap; }
+.shop-name { font-size: 15px; }
 .print-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
 .print-summary {
   display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; margin-bottom: 18px;
@@ -336,7 +351,9 @@ tr.voided td:last-child, tr.voided td .badge { text-decoration: none; }
 /* receipt */
 .receipt { font-size: 14px; }
 .receipt-top { text-align: center; border-bottom: 2px dashed var(--petal); padding-bottom: 12px; margin-bottom: 10px; }
-.receipt-top .brand { font-size: 36px; line-height: 1; }
+.receipt-top .logo-receipt { width: 180px; margin: 0 auto 8px; }
+.receipt-top .nw { white-space: nowrap; }
+.shop-name { font-size: 16px; margin: 0 0 4px; }
 .receipt-top p { margin: 2px 0; }
 .receipt-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin-bottom: 10px; }
 .receipt-meta dt { color: var(--muted); } .receipt-meta dd { margin: 0; font-weight: 600; text-align: right; }
@@ -414,7 +431,9 @@ tr.voided td:last-child, tr.voided td .badge { text-decoration: none; }
   .qty input { width: 52px; min-height: 38px; }
   .ticket .btn-lg { min-height: 50px; }
   .draft-sheet { padding: 20px 14px; }
-  .draft-sheet-head .brand { font-size: 27px; }
+  .draft-brand .logo { width: 96px; }
+  .draft-brand .nw { white-space: nowrap; }
+.shop-name { font-size: 15px; }
   .draft-details { grid-template-columns: 1fr; gap: 0; }
   .draft-line { grid-template-columns: minmax(0, 1fr) 76px 28px; gap: 8px; }
   .draft-line > .num { grid-column: 1 / 2; }

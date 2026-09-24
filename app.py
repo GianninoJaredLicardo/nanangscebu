@@ -1,4 +1,4 @@
-"""Nanang's Inventory and Sales, a Flask app with a Firebase Firestore database."""
+"""Nanang's Authentic Recipes Mandaue - Cebu Distributor, Inventory and Sales, a Flask app with a Firebase Firestore database."""
 import csv
 import hmac
 import io
@@ -19,14 +19,15 @@ try:  # load .env when running on your own computer
 except ImportError:
     pass
 
+from markupsafe import Markup, escape
 from pricing import PAY_METHODS, TIER_LABEL, SaleError, clean_request
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 PH = timezone(timedelta(hours=8))  # Philippines, no daylight saving
 
 SETTINGS = {
-    "shop_name": os.environ.get("SHOP_NAME", "Nanang's"),
-    "tagline": os.environ.get("SHOP_TAGLINE", "Authentic Recipes"),
+    # Registered trade name: always shown in full, never shortened.
+    "shop_name": "Nanang's Authentic Recipes Mandaue - Cebu Distributor",
     "contact": os.environ.get("SHOP_CONTACT", "0961 565 5590"),
     "reseller_min": float(os.environ.get("RESELLER_MIN", 2000)),
     "dealer_min": float(os.environ.get("DEALER_MIN", 5000)),
@@ -153,6 +154,18 @@ def sort_products(ps):
 
 def categories(ps):
     return sorted({p.get("category") for p in ps if p.get("category")}, key=lambda c: (cat_rank(c), c))
+
+
+SHOP_LOCATION = "Mandaue - Cebu Distributor"
+
+
+@app.template_filter("brand")
+def brand_filter(name):
+    """Show the full trade name, keeping 'Mandaue - Cebu Distributor' on one line."""
+    name = str(name)
+    if name.endswith(SHOP_LOCATION):
+        return Markup(f'{escape(name[:-len(SHOP_LOCATION)])}<span class="nw">{SHOP_LOCATION}</span>')
+    return escape(name)
 
 
 app.jinja_env.globals.update(
@@ -587,6 +600,21 @@ def log():
     if kind != "all":
         logs = [l for l in logs if l.get("type") == kind or (kind == "in" and l.get("type") == "opening")]
     return render_template("log.html", logs=logs, kind=kind)
+
+
+@app.route("/log/<lid>/delete", methods=["POST"])
+def log_delete(lid):
+    db().delete_log(lid)
+    flash("History entry deleted.")
+    kind = request.form.get("type", "all")
+    return redirect(url_for("log", type=kind) if kind != "all" else url_for("log"))
+
+
+@app.route("/log/clear", methods=["POST"])
+def log_clear():
+    n = db().clear_logs()
+    flash(f"Stock history cleared ({n} entries deleted)." if n else "There was no history to clear.")
+    return redirect(url_for("log"))
 
 
 # ------------------------------------------------------------------

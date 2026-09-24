@@ -13,10 +13,10 @@
 {% if not products %}
 <div class="seed">
   <h2>Your product list is empty</h2>
-  <p>Load all 50 products from your Nanang's price list with their SRP, Reseller and Dealer prices. Stock starts at 0, then add your stock in Stock in.</p>
+  <p>Load all 50 products from the Nanang's Authentic Recipes Mandaue - Cebu Distributor price list with their SRP, Reseller and Dealer prices. Stock starts at 0, then add your stock in Stock in.</p>
   <form method="post" action="{{ url_for('product_seed') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <button class="btn btn-primary" type="submit">Load Nanang's price list</button>
+    <button class="btn btn-primary" type="submit">Load Price List</button>
   </form>
   <p class="small" style="margin-top:12px">or <a class="link-btn" href="{{ url_for('product_new') }}">add products one by one</a></p>
 </div>

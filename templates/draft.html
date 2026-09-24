@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Draft quote - {{ SETTINGS.shop_name }}{% endblock %}
+{% block title %}Draft Quote - {{ SETTINGS.shop_name }}{% endblock %}
 {% block content %}
 <header class="view-head no-print">
   <div><h1>Draft quote</h1><p class="muted">Compute an estimate without checking or changing stock.</p></div>
@@ -23,9 +23,9 @@
     <p class="muted small">Stock is not checked for drafts. This is only a price estimate.</p>
   </section>
 
-  <section class="draft-sheet" id="draftSheet" data-shop-name="{{ SETTINGS.shop_name }}" aria-label="Draft quote">
+  <section class="draft-sheet" id="draftSheet" data-shop-name="{{ SETTINGS.shop_name }}" data-logo="{{ url_for('static', filename='logo.png') }}" aria-label="Draft quote">
     <div class="draft-sheet-head">
-      <div><span class="brand">{{ SETTINGS.shop_name }}</span><p class="muted small">Draft quote · {{ today }}</p></div>
+      <div class="draft-brand"><img class="logo" src="{{ url_for('static', filename='logo.png') }}" alt="" width="150" height="57"><div><span class="shop-name">{{ SETTINGS.shop_name|brand }}</span><p class="muted small">Draft quote · {{ today }}</p></div></div>
       <strong>ESTIMATE</strong>
     </div>
     <div class="draft-details">

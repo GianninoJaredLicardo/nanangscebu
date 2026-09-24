@@ -10,8 +10,8 @@
 <div class="receipt-page">
   <div class="panel receipt">
     <div class="receipt-top">
-      <span class="brand">{{ SETTINGS.shop_name }}</span>
-      <p class="muted small">{{ SETTINGS.tagline }}</p>
+      <img class="logo logo-receipt" src="{{ url_for('static', filename='logo.png') }}" alt="{{ SETTINGS.shop_name }}" width="180" height="69">
+      <p class="shop-name">{{ SETTINGS.shop_name|brand }}</p>
       {% if SETTINGS.contact %}<p class="small">{{ SETTINGS.contact }}</p>{% endif %}
     </div>
     {% if s.status == 'voided' %}<div class="void-stamp">VOIDED{% if s.voidedAt %} on {{ s.voidedAt|dt }}{% endif %}. Stock was returned.</div>{% endif %}
