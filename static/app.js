@@ -55,6 +55,29 @@
     };
     rs.addEventListener("change", show);
     show();
+
+    // Search: keep only matching products in the list (rebuilt, since hidden options don't work on every phone)
+    const groups = $$("optgroup", rs).map((g) => ({ label: g.label, options: $$("option", g) }));
+    const placeholder = rs.options[0];
+    $("#rsSearch").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      const current = rs.value;
+      rs.replaceChildren(placeholder);
+      let matches = [];
+      groups.forEach((g) => {
+        const opts = g.options.filter((o) => !q || o.textContent.toLowerCase().includes(q));
+        if (!opts.length) return;
+        const og = document.createElement("optgroup");
+        og.label = g.label;
+        og.append(...opts);
+        rs.append(og);
+        matches = matches.concat(opts);
+      });
+      if (matches.some((o) => o.value === current)) rs.value = current;
+      else rs.value = q && matches.length === 1 ? matches[0].value : "";
+      $("#rsEmpty").hidden = matches.length > 0;
+      show();
+    });
   }
 
   // Sales: reload when a date changes

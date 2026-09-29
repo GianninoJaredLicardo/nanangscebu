@@ -6,6 +6,7 @@
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <h2>Add delivered stock</h2>
     {% if products %}
+    <label>Search product<input type="search" id="rsSearch" placeholder="Type a product name" autocomplete="off"></label>
     <label>Product
       <select name="product" id="rsProduct" required>
         <option value="">Choose a product</option>
@@ -15,6 +16,7 @@
       </select>
     </label>
     <p class="muted small" id="rsCurrent"></p>
+    <p class="empty" id="rsEmpty" hidden>No products match your search.</p>
     <div class="field-row">
       <label>Packs received<select name="qty" required {{ 'autofocus' if selected }}>
         {% for qty in range(1, 101) %}<option value="{{ qty }}">{{ qty }}</option>{% endfor %}

@@ -51,7 +51,17 @@
     </form>
     {% endif %}
     <span class="spacer"></span>
+    <button class="btn" type="button" id="downloadReceipt">Download JPEG</button>
     <button class="btn btn-primary" type="button" onclick="window.print()">Print receipt</button>
   </div>
 </div>
+<script id="receipt-data" type="application/json">{{ {
+  "shopName": SETTINGS.shop_name, "shopContact": SETTINGS.contact, "logo": url_for('static', filename='logo.png'),
+  "orderNo": s.orderNo, "date": s.createdAt|dt, "buyer": s.buyer, "contact": s.contact or "", "address": s.get('address') or "",
+  "tier": TIER_LABEL.get(s.tier, 'SRP'), "items": s.get('items') or [], "packs": s.get('packs', 0),
+  "subtotal": s.get('subtotal') or 0, "discount": s.get('discount') or 0, "total": s.get('total') or 0,
+  "payMethod": s.get('payMethod', 'Cash'), "amountPaid": s.get('amountPaid'), "change": s.get('change') or 0,
+  "note": s.get('note') or "", "voided": s.status == 'voided'
+}|tojson }}</script>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='receipt.js') }}"></script>{% endblock %}
