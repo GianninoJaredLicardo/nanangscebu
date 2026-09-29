@@ -1,4 +1,5 @@
 """Nanang's Authentic Recipes Mandaue - Cebu Distributor, Inventory and Sales, a Flask app with a Firebase Firestore database."""
+import calendar
 import csv
 import hmac
 import io
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from flask import (Flask, Response, abort, flash, jsonify, redirect, render_template, request,
                    session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import check_password_hash
 
 try:  # load .env when running on your own computer
     from dotenv import load_dotenv
@@ -20,7 +22,7 @@ except ImportError:
     pass
 
 from markupsafe import Markup, escape
-from pricing import PAY_METHODS, TIER_LABEL, SaleError, clean_request
+from pricing import PAID_METHODS, PAY_LABEL, PAY_METHODS, TIER_LABEL, TO_COLLECT, SaleError, cap_first, cap_words, clean_request
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 PH = timezone(timedelta(hours=8))  # Philippines, no daylight saving
@@ -34,7 +36,10 @@ SETTINGS = {
     "low_stock": int(os.environ.get("LOW_STOCK", 5)),
 }
 CATEGORY_ORDER = ["Ready-to-Heat", "Easy-to-Cook", "Dimsum", "Sulit Pack"]
-LOG_LABEL = {"sale": "Sold", "in": "Stock in", "adjust": "Adjustment", "void": "Voided order", "opening": "Opening stock"}
+LOG_LABEL = {"sale": "Sold", "in": "Stock In", "out": "Stock Out", "adjust": "Adjustment", "void": "Voided Order",
+             "opening": "Opening Stock"}
+STOCK_OUT_REASONS = ("Spoiled", "Expired", "Damaged", "Free / Sample", "Other")
+BACKUP_REMIND_DAYS = 7
 
 # ------------------------------------------------------------------
 # App setup
@@ -48,7 +53,9 @@ app.config.update(
     SECRET_KEY=_secret or secrets.token_hex(32),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),  # HTTPS on Render
+    # HTTPS-only cookie when hosted (Railway or Render set these); plain http on your own computer
+    SESSION_COOKIE_SECURE=bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_ENVIRONMENT_NAME")
+                               or os.environ.get("RENDER")),
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     MAX_CONTENT_LENGTH=1024 * 1024,
 )
@@ -132,6 +139,26 @@ def _time(v):
     return fmt_time(d) if d else ""
 
 
+app.add_template_filter(cap_words, "cap_words")  # names and addresses saved before capitals were fixed
+app.add_template_filter(cap_first, "cap_first")  # notes
+
+
+@app.template_filter("pay")
+def _pay(method):
+    return PAY_LABEL.get(method, method)
+
+
+@app.template_filter("peso_short")
+def _peso_short(n):
+    """Short amounts for small calendar boxes: ₱850, ₱12.3k, ₱1.2M."""
+    n = float(n or 0)
+    if n < 1000:
+        return peso(n)
+    if n < 1_000_000:
+        return f"₱{n / 1000:.1f}".rstrip("0").rstrip(".") + "k"
+    return f"₱{n / 1_000_000:.1f}".rstrip("0").rstrip(".") + "M"
+
+
 @app.template_filter("num")
 def _num(n):
     return "{:,}".format(int(n or 0))
@@ -170,6 +197,7 @@ def brand_filter(name):
 
 app.jinja_env.globals.update(
     SETTINGS=SETTINGS, TIER_LABEL=TIER_LABEL, LOG_LABEL=LOG_LABEL, stock_state=stock_state, PAY_METHODS=PAY_METHODS,
+    PAID_METHODS=PAID_METHODS, TO_COLLECT=TO_COLLECT,
 )
 
 
@@ -177,7 +205,31 @@ app.jinja_env.globals.update(
 # Security: login, CSRF, login rate limit
 # ------------------------------------------------------------------
 ADMIN_USERNAME = "nanangsadmin"
-BUILT_IN_ADMIN_PASSWORD = "nanangscebu"
+# Only the hash lives in the environment (Railway Variables or .env), never the password itself.
+# Make one with: python make_password.py
+ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "").strip()
+if not ADMIN_PASSWORD_HASH:
+    print("WARNING: ADMIN_PASSWORD_HASH is not set. Nobody can sign in until you set it (see make_password.py).")
+
+LOGIN_MAX_FAILS = 5
+LOGIN_LOCK_SECONDS = 15 * 60
+_login_fails = {}  # ip -> [fail count, time of first fail]
+_login_lock = threading.Lock()
+
+
+def login_blocked(ip):
+    with _login_lock:
+        n, since = _login_fails.get(ip, (0, 0))
+        if n and time.time() - since > LOGIN_LOCK_SECONDS:
+            _login_fails.pop(ip, None)
+            return False
+        return n >= LOGIN_MAX_FAILS
+
+
+def login_failed(ip):
+    with _login_lock:
+        n, since = _login_fails.get(ip, (0, time.time()))
+        _login_fails[ip] = (n + 1, since)
 
 
 def csrf_token():
@@ -190,7 +242,12 @@ app.jinja_env.globals["csrf_token"] = csrf_token
 
 
 def password_ok(pw):
-    return hmac.compare_digest(BUILT_IN_ADMIN_PASSWORD.encode(), pw.encode())
+    if not ADMIN_PASSWORD_HASH:
+        return False
+    try:
+        return check_password_hash(ADMIN_PASSWORD_HASH, pw)
+    except ValueError:  # not a valid hash
+        return False
 
 
 PUBLIC = {"login", "static", "healthz"}
@@ -232,13 +289,21 @@ def login():
     if request.method == "POST":
         user = request.form.get("username", "").strip().lower()
         pw = request.form.get("password", "")
+        ip = request.remote_addr or ""
+        if not ADMIN_PASSWORD_HASH:
+            return render_template("login.html", error="Sign-in is not set up yet: ADMIN_PASSWORD_HASH is missing.")
+        if login_blocked(ip):
+            return render_template("login.html", error="Too many wrong tries. Wait 15 minutes and try again."), 429
         if hmac.compare_digest(user.encode(), ADMIN_USERNAME.encode()) and password_ok(pw):
+            with _login_lock:
+                _login_fails.pop(ip, None)
             session.clear()
             session.permanent = True
             session["admin"] = True
             csrf_token()
             nxt = request.args.get("next") or ""
             return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for("dashboard"))
+        login_failed(ip)
         error = "Wrong username or password."
     return render_template("login.html", error=error)
 
@@ -266,7 +331,13 @@ def dashboard():
         "stock": sum(p.get("stock") or 0 for p in products),
         "value": sum((p.get("stock") or 0) * (p.get("dealer") or 0) for p in products),
     }
-    return render_template("dashboard.html", products=products, sales=sales, low=low, stats=stats,
+    unpaid = db().to_collect()
+    collect = {"total": sum(s.get("total") or 0 for s in unpaid), "orders": len(unpaid)}
+    last = to_ph(db().last_backup())
+    backup_days = (now_ph() - last).days if last else None
+    backup_due = bool(products) and (backup_days is None or backup_days >= BACKUP_REMIND_DAYS)
+    return render_template("dashboard.html", products=products, sales=sales, low=low, stats=stats, collect=collect,
+                           backup_days=backup_days, backup_due=backup_due,
                            today=f"{now_ph():%A, %B} {now_ph().day}, {now_ph().year}")
 
 
@@ -279,7 +350,12 @@ def order():
     data = [{"id": p["id"], "name": p["name"], "category": p.get("category", ""), "srp": p.get("srp") or 0,
              "reseller": p.get("reseller") or 0, "dealer": p.get("dealer") or 0, "stock": p.get("stock") or 0,
              "state": stock_state(p)} for p in products]
-    return render_template("order.html", products=data, cats=categories(products))
+    customers = sorted(db().list_customers(), key=lambda c: to_ph(c.get("lastOrderAt")) or datetime.min.replace(tzinfo=PH),
+                       reverse=True)
+    customers = [{"name": cap_words(c.get("name", "")), "contact": c.get("contact", ""),
+                  "address": cap_words(c.get("address", ""))}
+                 for c in customers[:1000] if c.get("name")]
+    return render_template("order.html", products=data, cats=categories(products), customers=customers)
 
 
 @app.route("/draft")
@@ -291,15 +367,16 @@ def draft():
     return render_template("draft.html", products=data, cats=categories(products), today=date_key())
 
 
-def order_number():
-    return now_ph().strftime("%y%m%d") + "-" + secrets.token_hex(2).upper()
+def order_day_prefix():
+    """Orders are numbered per day in Philippine time: YYMMDD-001, YYMMDD-002, ..."""
+    return now_ph().strftime("%y%m%d")
 
 
 @app.route("/api/sale", methods=["POST"])
 def api_sale():
     try:
         req = clean_request(request.get_json(silent=True))
-        sid = db().create_sale(req, SETTINGS, order_number())
+        sid = db().create_sale(req, SETTINGS, order_day_prefix())
     except user_error_types() as e:
         return jsonify(error=str(e)), 400
     return jsonify(id=sid, url=url_for("receipt", sid=sid, new=1))
@@ -345,14 +422,17 @@ def read_product_form(existing=None):
             return default
 
     data = {
-        "name": f.get("name", "").strip()[:150],
-        "category": f.get("category", "").strip()[:60],
+        "name": cap_words(" ".join(f.get("name", "").split()))[:150],
+        "category": cap_words(" ".join(f.get("category", "").split()))[:60],
         "srp": money("srp", "SRP"),
         "reseller": money("reseller", "Reseller"),
         "dealer": money("dealer", "Dealer"),
+        "cost": None,
         "stock": whole("stock", "stock"),
         "lowStock": whole("lowStock", "low-stock alert", SETTINGS["low_stock"]),
     }
+    if f.get("cost", "").strip():
+        data["cost"] = money("cost", "cost")
     if not data["name"]:
         errors.append("Enter the product name.")
     if not data["category"]:
@@ -390,7 +470,7 @@ def product_edit(pid):
         data, errors = read_product_form(existing)
         if not errors:
             try:
-                db().update_product(pid, data, request.form.get("reason", "").strip()[:200])
+                db().update_product(pid, data, cap_first(request.form.get("reason", "").strip())[:200])
                 flash("Changes saved.")
                 return redirect(url_for("products"))
             except user_error_types() as e:
@@ -413,7 +493,7 @@ def product_seed():
     with open(os.path.join(BASE, "products.json"), encoding="utf-8") as fh:
         items = json.load(fh)
     n = db().seed_products(items, SETTINGS["low_stock"])
-    flash(f"Loaded {n} products. Now add your stock in Stock in." if n else "All products are already loaded.")
+    flash(f"Loaded {n} products. Now add your stock in Stock In." if n else "All products are already loaded.")
     return redirect(url_for("products"))
 
 
@@ -436,10 +516,11 @@ def products_print():
 
 @app.route("/products/export.csv")
 def products_export():
-    rows = [["Product", "Category", "SRP", "Reseller", "Dealer", "Stock", "Low-stock level", "Stock value (dealer)"]]
+    rows = [["Product", "Category", "SRP", "Reseller", "Dealer", "Your cost", "Stock", "Low-stock level",
+             "Stock value (dealer)"]]
     for p in sort_products(db().list_products()):
         s = p.get("stock") or 0
-        rows.append([p["name"], p.get("category"), p.get("srp"), p.get("reseller"), p.get("dealer"), s,
+        rows.append([p["name"], p.get("category"), p.get("srp"), p.get("reseller"), p.get("dealer"), p.get("cost"), s,
                      p.get("lowStock"), s * (p.get("dealer") or 0)])
     return csv_response(f"stock-{date_key()}.csv", rows)
 
@@ -455,6 +536,7 @@ def backup():
             return [plain(x) for x in v]
         return v
     data = plain(db().export_all())
+    db().note_backup()
     return Response(json.dumps(data, ensure_ascii=False, indent=1), mimetype="application/json",
                     headers={"Content-Disposition": f'attachment; filename="backup-{date_key()}.json"'})
 
@@ -462,11 +544,12 @@ def backup():
 # ------------------------------------------------------------------
 # Stock in
 # ------------------------------------------------------------------
-@app.route("/restock", methods=["GET", "POST"])
-def restock():
+def stock_page(mode):
+    """mode "in": deliveries. mode "out": spoiled, expired, damaged or free packs."""
     if request.method == "POST":
         pid = request.form.get("product", "")
-        note = request.form.get("note", "").strip()[:200]
+        note = cap_first(request.form.get("note", "").strip())[:200]
+        reason = request.form.get("reason", "")
         try:
             qty = int(request.form.get("qty", 0))
         except ValueError:
@@ -474,18 +557,36 @@ def restock():
         if not pid:
             flash("Choose a product.", "error")
         elif qty <= 0:
-            flash("Enter how many packs you received.", "error")
+            flash("Enter how many packs.", "error")
+        elif mode == "out" and reason not in STOCK_OUT_REASONS:
+            flash("Choose a reason.", "error")
         else:
             try:
-                name = db().restock(pid, qty, note)
-                flash(f"Added {qty} × {name}.")
+                if mode == "in":
+                    name = db().restock(pid, qty, note)
+                    flash(f"Added {qty} × {name}.")
+                else:
+                    name = db().stock_out(pid, qty, f"{reason}, {note[:1].lower() + note[1:]}" if note else reason)
+                    flash(f"Removed {qty} × {name} ({reason.lower()}).")
             except user_error_types() as e:
                 flash(str(e), "error")
-        return redirect(url_for("restock", note=note))
+        return redirect(url_for(request.endpoint, note=note if mode == "in" else None))
     products = sort_products(db().list_products())
-    today_logs = [l for l in db().logs_since(day_start(date_key())) if l.get("type") in ("in", "opening")]
-    return render_template("restock.html", products=products, cats=categories(products), today_logs=today_logs,
+    types = ("in", "opening") if mode == "in" else ("out",)
+    today_logs = [l for l in db().logs_since(day_start(date_key())) if l.get("type") in types]
+    return render_template("restock.html", mode=mode, products=products, cats=categories(products),
+                           today_logs=today_logs, reasons=STOCK_OUT_REASONS,
                            selected=request.args.get("product", ""), note=request.args.get("note", ""))
+
+
+@app.route("/restock", methods=["GET", "POST"])
+def restock():
+    return stock_page("in")
+
+
+@app.route("/stock-out", methods=["GET", "POST"])
+def stock_out():
+    return stock_page("out")
 
 
 # ------------------------------------------------------------------
@@ -509,54 +610,114 @@ def sales_range():
     return f, to, rng
 
 
+def summarize(rows):
+    """Totals, best sellers and profit for a list of sales.
+    Profit uses the cost saved on each sale, or the product's current cost for older sales.
+    Items with no cost at all are left out of profit (and counted in missing_cost)."""
+    done = [s for s in rows if s.get("status") != "voided"]
+    costs = {p["id"]: p.get("cost") for p in db().list_products()} if done else {}
+    agg, profit, missing = {}, 0, set()
+    for s in done:
+        sub = s.get("subtotal") or 0
+        factor = (s.get("total") or 0) / sub if sub else 1  # spread the discount over the items
+        for i in s["items"]:
+            a = agg.setdefault(i["productId"], {"name": i["name"], "qty": 0, "amount": 0, "profit": 0, "costed": True})
+            a["qty"] += i["qty"]
+            a["amount"] += i["subtotal"]
+            cost = i.get("cost")
+            if cost is None:
+                cost = costs.get(i["productId"])
+            if cost is None:
+                a["costed"] = False
+                missing.add(i["productId"])
+                continue
+            p = i["subtotal"] * factor - cost * i["qty"]
+            a["profit"] += p
+            profit += p
+    total = sum(s["total"] for s in done)
+    stats = {"total": total, "orders": len(done), "voided": len(rows) - len(done),
+             "packs": sum(s["packs"] for s in done), "avg": round(total / len(done)) if done else 0,
+             "profit": round(profit, 2), "missing_cost": len(missing), "has_cost": len(missing) < len(agg)}
+    return stats, sorted(agg.values(), key=lambda a: -a["qty"])
+
+
 @app.route("/sales")
 def sales():
     f, to, rng = sales_range()
     rows = db().sales_between(day_start(f), day_start(to) + timedelta(days=1))
-    done = [s for s in rows if s.get("status") != "voided"]
-    agg = {}
-    for s in done:
-        for i in s["items"]:
-            a = agg.setdefault(i["productId"], {"name": i["name"], "qty": 0, "amount": 0})
-            a["qty"] += i["qty"]
-            a["amount"] += i["subtotal"]
-    total = sum(s["total"] for s in done)
-    stats = {"total": total, "orders": len(done), "voided": len(rows) - len(done),
-             "packs": sum(s["packs"] for s in done), "avg": round(total / len(done)) if done else 0}
-    return render_template("sales.html", rows=rows, stats=stats, items=sorted(agg.values(), key=lambda a: -a["qty"]),
-                           f=f, to=to, rng=rng, multi_day=f != to)
+    stats, items = summarize(rows)
+    return render_template("sales.html", rows=rows, stats=stats, items=items, f=f, to=to, rng=rng, multi_day=f != to)
 
 
 @app.route("/sales/print")
 def sales_print():
     f, to, rng = sales_range()
     rows = db().sales_between(day_start(f), day_start(to) + timedelta(days=1))
-    done = [s for s in rows if s.get("status") != "voided"]
-    agg = {}
-    for s in done:
-        for i in s["items"]:
-            a = agg.setdefault(i["productId"], {"name": i["name"], "qty": 0, "amount": 0})
-            a["qty"] += i["qty"]
-            a["amount"] += i["subtotal"]
-    total = sum(s["total"] for s in done)
-    stats = {"total": total, "orders": len(done), "voided": len(rows) - len(done),
-             "packs": sum(s["packs"] for s in done), "avg": round(total / len(done)) if done else 0}
-    return render_template("sales_print.html", rows=rows, stats=stats, items=sorted(agg.values(), key=lambda a: -a["qty"]),
+    stats, items = summarize(rows)
+    return render_template("sales_print.html", rows=rows, stats=stats, items=items,
                            f=f, to=to, rng=rng, multi_day=f != to, today=date_key())
+
+
+@app.route("/calendar")
+def sales_calendar():
+    """Month calendar with each day's sales. Click a day to see what was sold."""
+    today = date_key()
+    try:
+        first = datetime.strptime(request.args.get("month", "") + "-01", "%Y-%m-%d").date()
+    except ValueError:
+        first = day_start(today).date().replace(day=1)
+    nxt = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+    prev = (first - timedelta(days=1)).replace(day=1)
+    month = first.strftime("%Y-%m")
+
+    rows = db().sales_between(day_start(first.isoformat()), day_start(nxt.isoformat()))
+    by_day = {}
+    for s in rows:
+        by_day.setdefault(date_key(to_ph(s["createdAt"])), []).append(s)
+    days = {}
+    for key, ss in by_day.items():
+        done = [s for s in ss if s.get("status") != "voided"]
+        days[key] = {"total": sum(s["total"] for s in done), "orders": len(done),
+                     "packs": sum(s["packs"] for s in done)}
+    top = max((d["total"] for d in days.values()), default=0)
+    for d in days.values():  # shade busier days darker
+        d["level"] = 0 if not d["total"] else 1 + min(int(d["total"] / top * 3), 2) if top else 0
+
+    selected = valid_key(request.args.get("day"))
+    if not selected or not selected.startswith(month):
+        selected = today if today.startswith(month) else None
+    day = None
+    if selected:
+        day_rows = by_day.get(selected, [])
+        stats, items = summarize(day_rows)
+        d = day_start(selected)
+        day = {"key": selected, "label": f"{d:%A, %B} {d.day}, {d.year}", "rows": day_rows, "stats": stats,
+               "sold": items}
+
+    weeks = [[{"key": dt.isoformat(), "num": dt.day, "in_month": dt.month == first.month,
+               **days.get(dt.isoformat(), {"total": 0, "orders": 0, "level": 0})}
+              for dt in week] for week in calendar.Calendar(firstweekday=6).monthdatescalendar(first.year, first.month)]
+    month_stats = {"total": sum(d["total"] for d in days.values()), "orders": sum(d["orders"] for d in days.values()),
+                   "packs": sum(d["packs"] for d in days.values()), "days": sum(1 for d in days.values() if d["orders"])}
+    best = max(days.items(), key=lambda kv: kv[1]["total"], default=None)
+    return render_template("calendar.html", weeks=weeks, month=month, month_label=f"{first:%B %Y}",
+                           prev=prev.strftime("%Y-%m"), next=nxt.strftime("%Y-%m"), today=today,
+                           this_month=today[:7], selected=selected, day=day, month_stats=month_stats,
+                           best=best if best and best[1]["total"] else None)
 
 
 @app.route("/sales/export.csv")
 def sales_export():
     f, to, _ = sales_range()
     rows = [["Date", "Time", "Order no.", "Buyer", "Contact", "Price level", "Product", "Qty", "Price", "Amount",
-             "Order subtotal", "Discount", "Order total", "Payment", "Status", "Note"]]
+             "Your cost", "Order subtotal", "Discount", "Order total", "Payment", "Status", "Note"]]
     for s in reversed(db().sales_between(day_start(f), day_start(to) + timedelta(days=1))):
         d = to_ph(s.get("createdAt"))
         for n, i in enumerate(s["items"]):
             first = n == 0
             rows.append([d.strftime("%Y-%m-%d") if d else "", d.strftime("%I:%M %p") if d else "", s["orderNo"],
-                         s["buyer"], s.get("contact"), TIER_LABEL.get(s["tier"]), i["name"], i["qty"], i["price"],
-                         i["subtotal"], s["subtotal"] if first else "", s["discount"] if first else "",
+                         cap_words(s["buyer"]), s.get("contact"), TIER_LABEL.get(s["tier"]), i["name"], i["qty"], i["price"],
+                         i["subtotal"], i.get("cost"), s["subtotal"] if first else "", s["discount"] if first else "",
                          s["total"] if first else "", s["payMethod"], s["status"], s.get("note")])
     return csv_response(f"sales-{f}_to_{to}.csv", rows)
 
@@ -567,6 +728,31 @@ def receipt(sid):
     if not s:
         abort(404)
     return render_template("receipt.html", s=s, new=request.args.get("new"))
+
+
+@app.route("/sales/<sid>/paid", methods=["POST"])
+def mark_paid(sid):
+    try:
+        method = request.form.get("method", "")
+        db().mark_paid(sid, method)
+        flash(f"Marked as paid ({PAY_LABEL.get(method, method)}).")
+    except user_error_types() as e:
+        flash(str(e), "error")
+    back = request.form.get("back")
+    return redirect(url_for("balances") if back == "balances" else url_for("receipt", sid=sid))
+
+
+@app.route("/balances")
+def balances():
+    rows = db().to_collect()
+    by_buyer = {}
+    for s in rows:
+        b = by_buyer.setdefault(" ".join(s["buyer"].lower().split()),
+                                {"name": cap_words(s["buyer"]), "contact": s.get("contact"), "total": 0, "orders": 0})
+        b["total"] += s.get("total") or 0
+        b["orders"] += 1
+    return render_template("balances.html", rows=rows, total=sum(s.get("total") or 0 for s in rows),
+                           buyers=sorted(by_buyer.values(), key=lambda b: -b["total"]), now=now_ph())
 
 
 @app.route("/sales/<sid>/void", methods=["POST"])

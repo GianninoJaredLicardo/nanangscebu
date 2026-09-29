@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head">
+  <div><h1>To Collect</h1><p class="muted">Orders saved with payment "To collect" that aren't paid yet.</p></div>
+</header>
+<dl class="stat-strip">
+  <div><dt>Still to Collect</dt><dd>{{ total|peso }}</dd></div>
+  <div><dt>Unpaid Orders</dt><dd>{{ rows|length }}</dd></div>
+  <div><dt>Buyers Who Owe</dt><dd>{{ buyers|length }}</dd></div>
+</dl>
+{% if rows %}
+<div class="grid-2 wide-left">
+  <div class="panel"><h2>Unpaid Orders</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Buyer</th><th class="num">Total</th><th>Mark as Paid</th></tr></thead>
+      <tbody>
+      {% for s in rows %}
+        {% set days = (now - s.createdAt).days if s.createdAt else 0 %}
+        <tr>
+          <td>{{ s.createdAt|dt }}<div class="muted small"><a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">{{ s.orderNo }}</a>{% if days >= 1 %}, {{ days }} day{{ 's' if days != 1 }} ago{% endif %}</div></td>
+          <td>{{ s.buyer|cap_words }}{% if s.contact %}<div class="muted small">{{ s.contact }}</div>{% endif %}</td>
+          <td class="num"><b>{{ s.total|peso }}</b></td>
+          <td>
+            <form class="paid-form" method="post" action="{{ url_for('mark_paid', sid=s.id) }}" data-confirm="Mark order {{ s.orderNo }} ({{ s.total|peso }}) from {{ s.buyer|cap_words }} as paid?">
+              <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="back" value="balances">
+              <select name="method" aria-label="How they paid">{% for m in PAID_METHODS %}<option value="{{ m }}">{{ m|pay }}</option>{% endfor %}</select>
+              <button class="btn" type="submit">Paid</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div class="panel"><h2>By Buyer</h2>
+    <ul class="rows">
+    {% for b in buyers %}
+      <li><span class="row-main"><span>{{ b.name }}</span><span class="muted small">{{ b.orders }} order{{ 's' if b.orders != 1 }}{% if b.contact %}, {{ b.contact }}{% endif %}</span></span><b class="num">{{ b.total|peso }}</b></li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+{% else %}
+<p class="empty">Nobody owes you right now. Orders saved with payment "To collect" will show here until you mark them as paid.</p>
+{% endif %}
+{% endblock %}

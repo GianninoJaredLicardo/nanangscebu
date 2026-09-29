@@ -2,8 +2,20 @@
 {% block content %}
 <header class="view-head">
   <div><h1>Today</h1><p class="muted">{{ today }}</p></div>
-  <a class="btn btn-primary" href="{{ url_for('order') }}">New order</a>
+  <a class="btn btn-primary" href="{{ url_for('order') }}">New Order</a>
 </header>
+{% if backup_due %}
+<div class="notice">
+  <span>{% if backup_days is none %}You haven't downloaded a backup yet.{% else %}Your last backup was {{ backup_days }} days ago.{% endif %} Download one to keep a copy of your products and sales.</span>
+  <a class="btn" href="{{ url_for('backup') }}">Download Backup</a>
+</div>
+{% endif %}
+{% if collect.orders %}
+<div class="notice">
+  <span><b>{{ collect.total|peso }}</b> still to collect from {{ collect.orders }} unpaid order{{ 's' if collect.orders != 1 }}.</span>
+  <a class="btn" href="{{ url_for('balances') }}">See Who Owes</a>
+</div>
+{% endif %}
 <div class="today">
   <div class="today-main">
     <span class="muted">Sales today</span>
@@ -11,14 +23,14 @@
   </div>
   <dl class="today-stats">
     <div><dt>Orders</dt><dd>{{ stats.orders }}</dd></div>
-    <div><dt>Packs sold</dt><dd>{{ stats.packs|num }}</dd></div>
-    <div><dt>Stock on hand</dt><dd>{{ stats.stock|num }}</dd></div>
-    <div><dt>Stock value at dealer price</dt><dd>{{ stats.value|peso }}</dd></div>
+    <div><dt>Packs Sold</dt><dd>{{ stats.packs|num }}</dd></div>
+    <div><dt>Stock on Hand</dt><dd>{{ stats.stock|num }}</dd></div>
+    <div><dt>Stock Value at Dealer Price</dt><dd>{{ stats.value|peso }}</dd></div>
   </dl>
 </div>
 <div class="grid-2">
   <div class="panel">
-    <h2>Low stock</h2>
+    <h2>Low Stock</h2>
     {% if not products %}
       <p class="empty">No products yet. <a class="link-btn" href="{{ url_for('products') }}">Load your price list</a></p>
     {% elif low %}
@@ -33,12 +45,12 @@
     {% endif %}
   </div>
   <div class="panel">
-    <h2>Orders today</h2>
+    <h2>Orders Today</h2>
     {% if sales %}
       <ul class="rows">
       {% for s in sales[:8] %}
         <li>
-          <span class="row-main"><span>{{ s.buyer }}</span><span class="muted small">{{ s.createdAt|time }}, {{ s.packs }} packs, {{ TIER_LABEL[s.tier] }}</span></span>
+          <span class="row-main"><span>{{ s.buyer|cap_words }}</span><span class="muted small">{{ s.createdAt|time }}, {{ s.packs }} packs, {{ TIER_LABEL[s.tier] }}</span></span>
           <span>{% if s.status == 'voided' %}<span class="badge void">Voided</span>{% else %}<b class="num">{{ s.total|peso }}</b>{% endif %}
             <a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">View</a></span>
         </li>

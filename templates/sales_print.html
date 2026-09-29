@@ -14,10 +14,11 @@
   </header>
 
   <div class="print-summary">
-    <div><span>Total sales</span><strong>{{ stats.total|peso }}</strong></div>
+    <div><span>Total Sales</span><strong>{{ stats.total|peso }}</strong></div>
     <div><span>Orders</span><strong>{{ stats.orders }}</strong></div>
-    <div><span>Packs sold</span><strong>{{ stats.packs|num }}</strong></div>
+    <div><span>Packs Sold</span><strong>{{ stats.packs|num }}</strong></div>
     <div><span>Average</span><strong>{{ stats.avg|peso }}</strong></div>
+    {% if stats.has_cost %}<div><span>Profit{% if stats.missing_cost %} (some products have no cost){% endif %}</span><strong>{{ stats.profit|peso }}</strong></div>{% endif %}
   </div>
 
   <div class="panel" style="margin-top:18px;">
@@ -26,7 +27,7 @@
       <table>
         <thead>
           <tr>
-            <th>{{ 'Date and time' if multi_day else 'Time' }}</th>
+            <th>{{ 'Date and Time' if multi_day else 'Time' }}</th>
             <th>Buyer</th>
             <th>Price</th>
             <th class="num">Packs</th>
@@ -38,7 +39,7 @@
           {% for s in rows %}
             <tr class="{{ 'voided' if s.status == 'voided' }}">
               <td>{{ s.createdAt|dt if multi_day else s.createdAt|time }}</td>
-              <td>{{ s.buyer }}</td>
+              <td>{{ s.buyer|cap_words }}</td>
               <td>{{ TIER_LABEL.get(s.tier, 'SRP') }}</td>
               <td class="num">{{ s.packs }}</td>
               <td class="num">{{ s.total|peso }}</td>
@@ -51,7 +52,7 @@
   </div>
 
   <div class="panel" style="margin-top:18px;">
-    <h2>Items sold</h2>
+    <h2>Items Sold</h2>
     <div class="table-wrap print-table">
       <table>
         <thead>

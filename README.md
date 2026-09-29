@@ -5,19 +5,22 @@ A web-based inventory system for your frozen products business.
 - **Backend:** Python **Flask**
 - **Pages:** HTML + CSS (pink theme), works on phone and computer
 - **Database:** **Firebase Cloud Firestore** (free Spark plan, data is kept permanently)
-- **Hosting:** **Render** (free plan)
+- **Hosting:** **Railway**
 - **Login:** one built-in admin account only
 
 ## What it does
 
-- **New order:** tap products, set quantities, and it computes the total. It picks the price level automatically (SRP, Reseller from ₱2,000, Dealer from ₱5,000) or you can choose. Handles discount, payment method, amount received and change.
-- **Complete sale:** the server re-checks prices and stock, deducts the stock, and saves the order with the date and time, all in one step. If there isn't enough stock, the sale is blocked.
-- **Receipt:** printable receipt for every order. Void an order and the stock goes back.
-- **Products:** all 50 Nanang's Authentic Recipes products with SRP, Reseller and Dealer prices, stock count and low-stock alerts.
-- **Stock in:** record deliveries.
-- **Sales:** today, yesterday, last 7 days, this month or any dates, with totals, packs sold and best-selling items. Export to CSV (opens in Excel).
+- **New order:** tap products, set quantities, and it computes the total. You choose the price level (SRP, Reseller or Dealer). Handles discount and payment method. Returning buyers' contact number and address fill in by themselves.
+- **Complete sale:** the server re-checks prices and stock, deducts the stock, and saves the order with the date and time, all in one step. If there isn't enough stock, the sale is blocked. Orders are numbered per day: `260929-001`, `260929-002`, ...
+- **Receipt:** printable receipt for every order, plus **Download JPEG** and (on phones) **Share** to send it on Messenger or Viber. Void an order and the stock goes back.
+- **Draft quote:** make a price estimate without touching stock. **Turn into order** moves it to New order when the buyer agrees.
+- **To collect:** every order saved with payment "To collect", who owes what, and a **Mark as paid** button.
+- **Products:** all 50 Nanang's Authentic Recipes products with SRP, Reseller and Dealer prices, your own cost (optional), stock count and low-stock alerts.
+- **Stock in/out:** record deliveries, and remove spoiled, expired, damaged or free packs with a reason.
+- **Sales:** today, yesterday, last 7 days, this month or any dates, with totals, packs sold, best-selling items and profit (when your cost is filled in). Export to CSV (opens in Excel).
+- **Calendar:** a month view with each day's sales. Tap a day to see its orders and the items sold.
 - **Stock log:** every stock movement with date and time.
-- **Backup:** download all your data from the Products page.
+- **Backup:** download all your data from the Products page. Home reminds you when your last backup is over a week old.
 
 ## Files
 
@@ -28,9 +31,9 @@ pricing.py          Order math (price level, totals, stock check)
 products.json       Your 50 products and prices
 templates/          HTML pages
 static/             CSS and JavaScript
-make_password.py    Makes your admin password hash
+make_password.py    Makes your admin password hash (ADMIN_PASSWORD_HASH)
 requirements.txt    Python packages
-render.yaml         Render settings
+render.yaml         Old Render settings (not used on Railway)
 .env.example        Settings for running on your computer
 ```
 
@@ -62,32 +65,25 @@ You don't need Firebase Authentication or Firebase Hosting for this version.
    ```
    python app.py
    ```
-   Open http://localhost:5000 and log in with username `admin` and your password.
-6. Log in with username `nanangsadmin` and password `nanangscebu`. Go to **Products** and click **Load Price List**, then enter your current stock in **Stock in**.
+   Open http://localhost:5000 and log in with username `nanangsadmin` and the password you typed into `make_password.py`.
+6. Go to **Products** and click **Load Price List**, then enter your current stock in **Stock in**.
 
 Your data is saved in Firebase, so it will still be there after you put the app online.
 
-## Part 3: Put it online with Render (free)
+## Part 3: Put it online with Railway
 
-Render needs your code on GitHub.
+Railway deploys your code from GitHub every time you push to `main`.
 
-1. Create a free account at https://github.com and make a **new private repository**.
-2. Upload all the files in this folder **except** `.env` and `serviceAccountKey.json`. (The `.gitignore` file already keeps them out if you use Git or GitHub Desktop.)
-3. Create a free account at https://render.com and sign in with GitHub.
-4. Click **New > Blueprint**, pick your repository, and click **Apply**. Render reads `render.yaml` and sets everything up on the free plan in Singapore.
-5. Render asks for two secret values:
-   - **ADMIN_PASSWORD_HASH:** paste the long value from `python make_password.py` (without the quotes).
+1. Keep your GitHub repository **private**. Never upload `.env` or `serviceAccountKey.json` (`.gitignore` already keeps them out).
+2. At https://railway.app, create a project with **Deploy from GitHub repo** and pick this repository.
+3. In **your service > Variables**, add:
+   - **SECRET_KEY:** any long random text.
+   - **ADMIN_PASSWORD_HASH:** the long value from `python make_password.py` (without the quotes).
    - **FIREBASE_CREDENTIALS:** open `serviceAccountKey.json` in Notepad, copy **all** of it, and paste it.
-6. Wait for the build to finish. Your link looks like **https://nanangs-inventory.onrender.com**. Open it and log in.
+4. If Railway asks for a start command, use `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60`.
+5. In **Settings > Networking**, click **Generate Domain** to get your link, then open it and log in.
 
-**If you don't want to use Blueprint:** New > Web Service, pick your repo, then set
-Build command `pip install -r requirements.txt`, Start command `gunicorn app:app --workers 1 --threads 4 --timeout 60`, Instance type **Free**, and add the environment variables `PYTHON_VERSION=3.12.7`, `SECRET_KEY` (any long random text), `ADMIN_USERNAME=admin`, `ADMIN_PASSWORD_HASH`, and `FIREBASE_CREDENTIALS`.
-
-### About the free Render plan
-
-- If nobody opens the site for **15 minutes**, Render puts it to sleep. The next visit takes **about a minute** to load while it wakes up. After that it's fast.
-- Your data is **never lost** when it sleeps, because it lives in Firebase, not on Render.
-- **Optional:** to keep it awake, create a free monitor at https://uptimerobot.com that visits `https://YOUR-APP.onrender.com/healthz` every 5 minutes. One always-on app fits in Render's 750 free hours per month.
+Your data lives in Firebase, not on Railway, so redeploying never loses it.
 
 ---
 
@@ -96,10 +92,14 @@ Build command `pip install -r requirements.txt`, Start command `gunicorn app:app
 | To do this | Go to |
 |---|---|
 | Sell to a buyer | **New order** → tap products → **Complete sale** |
-| Record a delivery | **Stock in** |
+| Record a delivery | **Stock in/out** → **Stock in** |
+| Remove spoiled or expired packs | **Stock in/out** → **Stock out** |
+| Send a receipt to a buyer | Open the order → **Share** (phone) or **Download JPEG** |
+| Turn a quote into a sale | **Draft quote** → **Turn into order** |
+| See who still owes you | **To collect** → **Paid** when they pay |
 | Fix a wrong stock count | **Products** → **Edit** → change stock and give a reason |
 | Cancel a sale | **Sales** → **View** → **Void order** |
-| See daily or monthly sales | **Sales** |
+| See daily or monthly sales | **Sales**, or **Calendar** and tap a day |
 | Get a spreadsheet | **Sales** → **Export sales (CSV)**, or **Products** → **Export stock (CSV)** |
 | Back up everything | **Products** → **Download backup** |
 
@@ -107,22 +107,21 @@ Build command `pip install -r requirements.txt`, Start command `gunicorn app:app
 
 ## Changing settings
 
-On Render: **your service > Environment**, then save (it restarts automatically). On your computer: edit `.env`.
+On Railway: **your service > Variables**, then deploy the change (Railway restarts the app). On your computer: edit `.env`.
 
 | Setting | What it does | Default |
 |---|---|---|
-| `ADMIN_USERNAME` | Login username | `admin` |
-| `ADMIN_PASSWORD_HASH` | Login password (run `make_password.py` to change it) | |
+| `ADMIN_PASSWORD_HASH` | Login password (run `make_password.py` to change it). **Required:** nobody can sign in without it. | |
 | `RESELLER_MIN` | Order amount for Reseller price | `2000` |
 | `DEALER_MIN` | Order amount for Dealer price | `5000` |
 | `LOW_STOCK` | Default low-stock alert level | `5` |
 | `SHOP_CONTACT` | Shown on receipts | `0961 565 5590` |
 
-To **change your password**, run `python make_password.py` and replace `ADMIN_PASSWORD_HASH` on Render.
+The login username is always `nanangsadmin`. To **change your password**, run `python make_password.py` and replace `ADMIN_PASSWORD_HASH` in Railway Variables. The password itself is never stored in the code or on Railway, only its hash.
 
 ## Backups
 
-The free Firebase plan has no automatic backups. Once a week or month, go to **Products > Download backup** and keep the file somewhere safe (Google Drive, email to yourself).
+The free Firebase plan has no automatic backups (Firestore's scheduled exports need the paid Blaze plan). Once a week, go to **Products > Download backup** and keep the file somewhere safe (Google Drive, email to yourself). The Home page reminds you when it has been 7 days or more.
 
 ## Free plan limits
 
@@ -131,7 +130,7 @@ Firebase's free plan allows **50,000 reads and 20,000 writes per day**. Opening 
 ## Security
 
 - Only one account exists: the username and password hash in your settings. There's no sign-up page.
-- After 5 wrong passwords, logins are blocked for 10 minutes.
+- After 5 wrong passwords, logins from that device are blocked for 15 minutes.
 - Every form is protected against fake requests (CSRF).
 - The Firebase database is closed to the public; only your app's private key can reach it.
 
@@ -139,7 +138,6 @@ Firebase's free plan allows **50,000 reads and 20,000 writes per day**. Opening 
 
 | Problem | Fix |
 |---|---|
-| "Firebase key not found" | On Render, check `FIREBASE_CREDENTIALS` has the whole JSON text. On your computer, check `serviceAccountKey.json` is next to `app.py`. |
+| "Firebase key not found" | On Railway, check `FIREBASE_CREDENTIALS` has the whole JSON text. On your computer, check `serviceAccountKey.json` is next to `app.py`. |
 | "Wrong username or password" | Run `make_password.py` again and update `ADMIN_PASSWORD_HASH`. |
-| Site takes a minute to open | It was asleep (free plan). See the UptimeRobot tip above. |
 | Logged out after every restart | Set `SECRET_KEY` to a fixed value. |

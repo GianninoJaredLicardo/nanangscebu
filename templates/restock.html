@@ -1,15 +1,22 @@
 {% extends "base.html" %}
+{% set out = mode == 'out' %}
 {% block content %}
-<header class="view-head"><h1>Stock in</h1></header>
+<header class="view-head">
+  <h1>{{ 'Stock Out' if out else 'Stock In' }}</h1>
+  <div class="seg" role="group" aria-label="Stock in or out">
+    <a class="{{ 'on' if not out }}" href="{{ url_for('restock') }}">Stock In</a>
+    <a class="{{ 'on' if out }}" href="{{ url_for('stock_out') }}">Stock Out</a>
+  </div>
+</header>
 <div class="grid-2">
   <form class="panel" method="post" id="restockForm">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <h2>Add delivered stock</h2>
+    <h2>{{ 'Remove Spoiled, Expired or Free Packs' if out else 'Add Delivered Stock' }}</h2>
     {% if products %}
-    <label>Search product<input type="search" id="rsSearch" placeholder="Type a product name" autocomplete="off"></label>
+    <label>Search Product<input type="search" id="rsSearch" placeholder="Type a product name" autocomplete="off"></label>
     <label>Product
       <select name="product" id="rsProduct" required>
-        <option value="">Choose a product</option>
+        <option value="">Choose a Product</option>
         {% for c in cats %}<optgroup label="{{ c }}">
           {% for p in products if p.category == c %}<option value="{{ p.id }}" data-stock="{{ p.stock or 0 }}" {{ 'selected' if p.id == selected }}>{{ p.name }}</option>{% endfor %}
         </optgroup>{% endfor %}
@@ -17,28 +24,42 @@
     </label>
     <p class="muted small" id="rsCurrent"></p>
     <p class="empty" id="rsEmpty" hidden>No products match your search.</p>
+    {% if out %}
     <div class="field-row">
-      <label>Packs received<select name="qty" required {{ 'autofocus' if selected }}>
+      <label>Packs to Remove<select name="qty" required>
         {% for qty in range(1, 101) %}<option value="{{ qty }}">{{ qty }}</option>{% endfor %}
       </select></label>
-      <label>Note<input name="note" value="{{ note }}" maxlength="200" placeholder="e.g. Delivery from supplier"></label>
+      <label>Reason<select name="reason" required>
+        <option value="">Choose a Reason</option>
+        {% for r in reasons %}<option>{{ r }}</option>{% endfor %}
+      </select></label>
     </div>
-    <button class="btn btn-primary btn-block" type="submit">Add to stock</button>
+    <label>Note<input name="note" maxlength="200" placeholder="Optional. Example: Freezer broke down" autocapitalize="sentences"></label>
+    <button class="btn btn-danger btn-block" type="submit">Remove from Stock</button>
+    {% else %}
+    <div class="field-row">
+      <label>Packs Received<select name="qty" required {{ 'autofocus' if selected }}>
+        {% for qty in range(1, 101) %}<option value="{{ qty }}">{{ qty }}</option>{% endfor %}
+      </select></label>
+      <label>Note<input name="note" value="{{ note }}" maxlength="200" placeholder="Example: Delivery from supplier" autocapitalize="sentences"></label>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">Add to Stock</button>
+    {% endif %}
     {% else %}
     <p class="empty">No products yet. <a class="link-btn" href="{{ url_for('products') }}">Load your price list first</a></p>
     {% endif %}
   </form>
   <div class="panel">
-    <h2>Stock added today</h2>
+    <h2>{{ 'Stock Removed Today' if out else 'Stock Added Today' }}</h2>
     {% if today_logs %}
       <ul class="rows">
       {% for l in today_logs %}
-        <li><span class="row-main"><span>{{ l.name }}</span><span class="muted small">{{ l.createdAt|time }}, {{ l.note }}</span></span><span class="plus">+{{ l.change }}</span></li>
+        <li><span class="row-main"><span>{{ l.name }}</span><span class="muted small">{{ l.createdAt|time }}, {{ l.note|cap_first }}</span></span><span class="{{ 'minus' if out else 'plus' }}">{{ '+' if not out }}{{ l.change }}</span></li>
       {% endfor %}
       </ul>
-      <p class="muted small">{{ today_logs|sum(attribute='change') }} packs added today.</p>
+      <p class="muted small">{{ today_logs|sum(attribute='change')|abs }} packs {{ 'removed' if out else 'added' }} today.</p>
     {% else %}
-      <p class="empty">Nothing added yet today.</p>
+      <p class="empty">{{ 'Nothing removed today.' if out else 'Nothing added yet today.' }}</p>
     {% endif %}
   </div>
 </div>

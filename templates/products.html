@@ -4,33 +4,33 @@
   <h1>Products</h1>
   <div class="head-actions">
     {% if products %}
-    <a class="btn" href="{{ url_for('products_print') }}">Printable stock</a>
-    <a class="btn" href="{{ url_for('backup') }}">Download backup</a>
+    <a class="btn" href="{{ url_for('products_print') }}">Printable Stock</a>
+    <a class="btn" href="{{ url_for('backup') }}">Download Backup</a>
     {% endif %}
-    <a class="btn btn-primary" href="{{ url_for('product_new') }}">Add product</a>
+    <a class="btn btn-primary" href="{{ url_for('product_new') }}">Add Product</a>
   </div>
 </header>
 {% if not products %}
 <div class="seed">
-  <h2>Your product list is empty</h2>
-  <p>Load all 50 products from the Nanang's Authentic Recipes Mandaue - Cebu Distributor price list with their SRP, Reseller and Dealer prices. Stock starts at 0, then add your stock in Stock in.</p>
+  <h2>Your Product List Is Empty</h2>
+  <p>Load all 50 products from the Nanang's Authentic Recipes Mandaue - Cebu Distributor price list with their SRP, Reseller and Dealer prices. Stock starts at 0, then add your stock in Stock In.</p>
   <form method="post" action="{{ url_for('product_seed') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <button class="btn btn-primary" type="submit">Load Price List</button>
   </form>
-  <p class="small" style="margin-top:12px">or <a class="link-btn" href="{{ url_for('product_new') }}">add products one by one</a></p>
+  <p class="small" style="margin-top:12px">Or <a class="link-btn" href="{{ url_for('product_new') }}">add products one by one</a></p>
 </div>
 {% else %}
 <div class="toolbar" id="prodFilters">
   <input id="prodSearch" type="search" placeholder="Search products" aria-label="Search products">
   <select id="prodCat" aria-label="Category">
-    <option value="all">All categories</option>
+    <option value="all">All Categories</option>
     {% for c in cats %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
   </select>
   <select id="prodStock" aria-label="Stock filter">
-    <option value="all">All stock levels</option>
-    <option value="low" {{ 'selected' if stock_filter == 'low' }}>Low or out of stock</option>
-    <option value="out" {{ 'selected' if stock_filter == 'out' }}>Out of stock</option>
+    <option value="all">All Stock Levels</option>
+    <option value="low" {{ 'selected' if stock_filter == 'low' }}>Low or Out of Stock</option>
+    <option value="out" {{ 'selected' if stock_filter == 'out' }}>Out of Stock</option>
   </select>
 </div>
 <p class="muted">{{ products|length }} products, {{ packs|num }} packs on hand, {{ low_count }} low or out of stock.</p>
@@ -46,7 +46,7 @@
       <td class="num">{{ p.dealer|peso }}</td>
       <td class="num">{% include "_stock_badge.html" %}</td>
       <td><div class="actions">
-        <a class="btn" href="{{ url_for('restock', product=p.id) }}">Stock in</a>
+        <a class="btn" href="{{ url_for('restock', product=p.id) }}">Stock In</a>
         <a class="btn" href="{{ url_for('product_edit', pid=p.id) }}">Edit</a>
       </div></td>
     </tr>

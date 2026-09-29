@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="view-head">
+  <div><h1>Sales Calendar</h1><p class="muted">Tap a day to see what was sold.</p></div>
+  <div class="head-actions">
+    <a class="btn" href="{{ url_for('sales_calendar', month=prev) }}" aria-label="Previous month">‹ Previous</a>
+    {% if month != this_month %}<a class="btn" href="{{ url_for('sales_calendar') }}">This Month</a>{% endif %}
+    <a class="btn" href="{{ url_for('sales_calendar', month=next) }}" aria-label="Next month">Next ›</a>
+  </div>
+</header>
+<dl class="stat-strip">
+  <div><dt>Sales in {{ month_label }}</dt><dd>{{ month_stats.total|peso }}</dd></div>
+  <div><dt>Orders</dt><dd>{{ month_stats.orders }}</dd></div>
+  <div><dt>Packs Sold</dt><dd>{{ month_stats.packs|num }}</dd></div>
+  <div><dt>Best Day</dt><dd>{% if best %}<a class="cal-best" href="{{ url_for('sales_calendar', month=month, day=best[0]) }}">{{ best[0][8:]|int }}</a> <span class="small muted">{{ best[1].total|peso }}</span>{% else %}—{% endif %}</dd></div>
+</dl>
+<div class="cal-layout">
+  <section class="panel cal" aria-label="{{ month_label }}">
+    <h2>{{ month_label }}</h2>
+    <div class="cal-grid cal-head" aria-hidden="true">
+      {% for d in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}<span>{{ d }}</span>{% endfor %}
+    </div>
+    <div class="cal-grid">
+      {% for week in weeks %}{% for d in week %}
+        {% if d.in_month %}
+        <a class="cal-day lvl-{{ d.level }} {{ 'is-today' if d.key == today }} {{ 'is-on' if d.key == selected }}"
+           href="{{ url_for('sales_calendar', month=month, day=d.key) }}"
+           aria-label="{{ d.key }}: {% if d.orders %}{{ d.total|peso }}, {{ d.orders }} order{{ 's' if d.orders != 1 }}{% else %}No sales{% endif %}"
+           {{ 'aria-current=date' if d.key == selected }}>
+          <span class="cal-num">{{ d.num }}</span>
+          {% if d.orders %}
+          <span class="cal-amt"><span class="full">{{ d.total|peso }}</span><span class="short">{{ d.total|peso_short }}</span></span>
+          <span class="cal-orders">{{ d.orders }} order{{ 's' if d.orders != 1 }}</span>
+          {% endif %}
+        </a>
+        {% else %}<span class="cal-day is-out" aria-hidden="true"><span class="cal-num">{{ d.num }}</span></span>{% endif %}
+      {% endfor %}{% endfor %}
+    </div>
+  </section>
+
+  <section class="panel cal-detail" id="day">
+    {% if day %}
+      <h2>{{ day.label }}</h2>
+      {% if day.stats.orders %}
+        <dl class="cal-sum">
+          <div><dt>Sales</dt><dd>{{ day.stats.total|peso }}</dd></div>
+          <div><dt>Orders</dt><dd>{{ day.stats.orders }}</dd></div>
+          <div><dt>Packs</dt><dd>{{ day.stats.packs|num }}</dd></div>
+          {% if day.stats.has_cost %}<div><dt>Profit</dt><dd>{{ day.stats.profit|peso }}</dd></div>{% endif %}
+        </dl>
+        <h3 class="cal-sub">Items Sold</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Product</th><th class="num">Packs</th><th class="num">Amount</th></tr></thead>
+          <tbody>{% for i in day.sold %}<tr><td>{{ i.name }}</td><td class="num">{{ i.qty }}</td><td class="num">{{ i.amount|peso }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+      {% else %}
+        <p class="empty">No completed sales on this day.</p>
+      {% endif %}
+      {% if day.rows %}
+        <h3 class="cal-sub">Orders</h3>
+        <ul class="rows">
+        {% for s in day.rows %}
+          <li>
+            <span class="row-main"><span>{{ s.buyer|cap_words }}</span><span class="muted small">{{ s.createdAt|time }}, {{ s.orderNo }}, {{ s.packs }} packs</span></span>
+            <span>{% if s.status == 'voided' %}<span class="badge void">Voided</span>{% else %}<b class="num">{{ s.total|peso }}</b>{% endif %}
+              <a class="link-btn" href="{{ url_for('receipt', sid=s.id) }}">View</a></span>
+          </li>
+        {% endfor %}
+        </ul>
+        <p class="small"><a class="link-btn" href="{{ url_for('sales', **{'from': day.key, 'to': day.key}) }}">Open This Day in Sales</a></p>
+      {% endif %}
+    {% else %}
+      <h2>Choose a Day</h2>
+      <p class="empty">Tap any day in the calendar to see its orders and the items sold.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+  // On phones the details sit below the calendar: scroll to them after a day is tapped.
+  if (new URLSearchParams(location.search).has("day") && window.matchMedia("(max-width: 1100px)").matches) {
+    document.getElementById("day").scrollIntoView({ block: "start" });
+  }
+</script>{% endblock %}

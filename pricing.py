@@ -1,8 +1,24 @@
 """Order math: price level, totals, stock check. No database code here."""
+import re
 
 TIERS = ("srp", "reseller", "dealer")
 TIER_LABEL = {"srp": "SRP", "reseller": "Reseller", "dealer": "Dealer"}
 PAY_METHODS = ("Cash", "GCash", "Bank transfer", "To collect")
+TO_COLLECT = "To collect"
+PAY_LABEL = {"Bank transfer": "Bank Transfer", "To collect": "To Collect"}  # how saved payment names are shown
+PAID_METHODS = tuple(m for m in PAY_METHODS if m != TO_COLLECT)
+
+
+def cap_words(text):
+    """'ana dela cruz' -> 'Ana Dela Cruz'. Only lowercase first letters change, so 'GCash' or 'McCoy' stay as typed."""
+    return re.sub(r"(?<![\w'’])([a-zñ])", lambda m: m.group(1).upper(), str(text or ""))
+
+
+def cap_first(text):
+    """'deliver saturday' -> 'Deliver saturday'."""
+    text = str(text or "")
+    i = len(text) - len(text.lstrip())
+    return text[:i] + text[i:i + 1].upper() + text[i + 1:]
 
 
 class SaleError(Exception):
@@ -52,9 +68,9 @@ def clean_request(data):
         mode = "auto"
     pay = data.get("payMethod") if data.get("payMethod") in PAY_METHODS else "Cash"
     paid_raw = data.get("amountPaid")
-    buyer = (str(data.get("buyer") or "").strip())[:120]
+    buyer = cap_words(" ".join(str(data.get("buyer") or "").split()))[:120]
     contact = (str(data.get("contact") or "").strip())[:200]
-    address = (str(data.get("address") or "").strip())[:300]
+    address = cap_words(" ".join(str(data.get("address") or "").split()))[:300]
     if not buyer:
         raise SaleError("Enter the buyer name.")
     if not contact:
@@ -67,7 +83,7 @@ def clean_request(data):
         "buyer": buyer,
         "contact": contact,
         "address": address,
-        "note": str(data.get("note") or "").strip()[:300],
+        "note": cap_first(str(data.get("note") or "").strip())[:300],
         "discount": max(_num(data.get("discount")), 0),
         "payMethod": pay,
         "amountPaid": None if paid_raw in (None, "") else max(_num(paid_raw), 0),
@@ -91,7 +107,10 @@ def build_sale(products_by_id, req, settings, now, order_no):
     items = []
     for p, q in lines:
         price = p.get(tier) or 0
-        items.append({"productId": p["id"], "name": p["name"], "qty": q, "price": price, "subtotal": price * q})
+        item = {"productId": p["id"], "name": p["name"], "qty": q, "price": price, "subtotal": price * q}
+        if p.get("cost") is not None:
+            item["cost"] = p["cost"]  # your buying cost at the time of sale, for profit reports
+        items.append(item)
 
     subtotal = sum(i["subtotal"] for i in items)
     discount = min(req["discount"], subtotal)

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <header class="view-head no-print">
-  <h1>{{ 'Sale saved' if new and s.status != 'voided' else 'Order ' ~ s.orderNo }}</h1>
+  <h1>{{ 'Sale Saved' if new and s.status != 'voided' else 'Order ' ~ s.orderNo }}</h1>
   <div class="head-actions">
-    <a class="btn" href="{{ url_for('sales') }}">All sales</a>
-    <a class="btn btn-primary" href="{{ url_for('order') }}">New order</a>
+    <a class="btn" href="{{ url_for('sales') }}">All Sales</a>
+    <a class="btn btn-primary" href="{{ url_for('order') }}">New Order</a>
   </div>
 </header>
 <div class="receipt-page">
@@ -16,12 +16,12 @@
     </div>
     {% if s.status == 'voided' %}<div class="void-stamp">VOIDED{% if s.voidedAt %} on {{ s.voidedAt|dt }}{% endif %}. Stock was returned.</div>{% endif %}
     <dl class="receipt-meta">
-      <dt>Order no.</dt><dd>{{ s.orderNo }}</dd>
-      <dt>Date and time</dt><dd>{{ s.createdAt|dt }}</dd>
-      <dt>Buyer</dt><dd>{{ s.buyer }}</dd>
+      <dt>Order No.</dt><dd>{{ s.orderNo }}</dd>
+      <dt>Date and Time</dt><dd>{{ s.createdAt|dt }}</dd>
+      <dt>Buyer</dt><dd>{{ s.buyer|cap_words }}</dd>
       {% if s.contact %}<dt>Contact</dt><dd>{{ s.contact }}</dd>{% endif %}
-      {% if s.get('address') %}<dt>Address</dt><dd>{{ s.address }}</dd>{% endif %}
-      <dt>Price level</dt><dd>{{ TIER_LABEL.get(s.tier, 'SRP') }}</dd>
+      {% if s.get('address') %}<dt>Address</dt><dd>{{ s.address|cap_words }}</dd>{% endif %}
+      <dt>Price Level</dt><dd>{{ TIER_LABEL.get(s.tier, 'SRP') }}</dd>
     </dl>
     <table>
       <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
@@ -30,38 +30,48 @@
     <div class="tot-row" style="margin-top:8px"><span>Subtotal ({{ s.get('packs', 0) }} packs)</span><span>{{ (s.get('subtotal') or 0)|peso }}</span></div>
     {% if s.get('discount') %}<div class="tot-row"><span>Discount</span><span>−{{ (s.get('discount') or 0)|peso }}</span></div>{% endif %}
     <div class="grand-line"><b>Total</b><strong>{{ (s.get('total') or 0)|peso }}</strong></div>
-    <div class="tot-row"><span>Payment</span><span>{{ s.get('payMethod', 'Cash') }}</span></div>
+    <div class="tot-row"><span>Payment</span><span>{% if s.get('payMethod') == TO_COLLECT and s.status != 'voided' %}<span class="badge low">Not Paid Yet</span>{% else %}{{ s.get('payMethod', 'Cash')|pay }}{% endif %}</span></div>
+    {% if s.get('collectedAt') %}<div class="tot-row"><span>Paid on</span><span>{{ s.collectedAt|dt }}</span></div>{% endif %}
     {% if s.get('amountPaid') is not none %}
-      <div class="tot-row"><span>Amount received</span><span>{{ (s.get('amountPaid') or 0)|peso }}</span></div>
+      <div class="tot-row"><span>Amount Received</span><span>{{ (s.get('amountPaid') or 0)|peso }}</span></div>
       <div class="tot-row"><span>Change</span><span>{{ (s.get('change') or 0)|peso }}</span></div>
     {% endif %}
-    {% if s.get('note') %}<p class="small"><b>Note:</b> {{ s.note }}</p>{% endif %}
+    {% if s.get('note') %}<p class="small"><b>Note:</b> {{ s.note|cap_first }}</p>{% endif %}
     <p class="center muted small">Thank you for your order!</p>
   </div>
+  {% if s.get('payMethod') == TO_COLLECT and s.status != 'voided' %}
+  <form class="panel paid-form no-print" method="post" action="{{ url_for('mark_paid', sid=s.id) }}" data-confirm="Mark order {{ s.orderNo }} ({{ s.total|peso }}) as paid?">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <span><b>Got the Payment?</b> <span class="muted small">Choose how they paid.</span></span>
+    <select name="method" aria-label="How they paid">{% for m in PAID_METHODS %}<option value="{{ m }}">{{ m|pay }}</option>{% endfor %}</select>
+    <button class="btn btn-primary" type="submit">Mark as Paid</button>
+  </form>
+  {% endif %}
   <div class="modal-actions no-print">
     {% if s.status != 'voided' %}
     <form method="post" action="{{ url_for('void', sid=s.id) }}" data-confirm="Void order {{ s.orderNo }}? This cancels the {{ s.total|peso }} sale and returns {{ s.packs }} packs to stock.">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="btn btn-danger" type="submit">Void order</button>
+      <button class="btn btn-danger" type="submit">Void Order</button>
     </form>
     {% else %}
     <form method="post" action="{{ url_for('delete_sale', sid=s.id) }}" data-confirm="Delete voided order {{ s.orderNo }} permanently? This cannot be undone.">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="btn btn-danger" type="submit">Delete order</button>
+      <button class="btn btn-danger" type="submit">Delete Order</button>
     </form>
     {% endif %}
     <span class="spacer"></span>
+    <button class="btn" type="button" id="shareReceipt" hidden>Share</button>
     <button class="btn" type="button" id="downloadReceipt">Download JPEG</button>
-    <button class="btn btn-primary" type="button" onclick="window.print()">Print receipt</button>
+    <button class="btn btn-primary" type="button" onclick="window.print()">Print Receipt</button>
   </div>
 </div>
 <script id="receipt-data" type="application/json">{{ {
   "shopName": SETTINGS.shop_name, "shopContact": SETTINGS.contact, "logo": url_for('static', filename='logo.png'),
-  "orderNo": s.orderNo, "date": s.createdAt|dt, "buyer": s.buyer, "contact": s.contact or "", "address": s.get('address') or "",
+  "orderNo": s.orderNo, "date": s.createdAt|dt, "buyer": s.buyer|cap_words, "contact": s.contact or "", "address": (s.get('address') or "")|cap_words,
   "tier": TIER_LABEL.get(s.tier, 'SRP'), "items": s.get('items') or [], "packs": s.get('packs', 0),
   "subtotal": s.get('subtotal') or 0, "discount": s.get('discount') or 0, "total": s.get('total') or 0,
-  "payMethod": s.get('payMethod', 'Cash'), "amountPaid": s.get('amountPaid'), "change": s.get('change') or 0,
-  "note": s.get('note') or "", "voided": s.status == 'voided'
+  "payMethod": 'Not Paid Yet' if s.get('payMethod') == TO_COLLECT and s.status != 'voided' else s.get('payMethod', 'Cash')|pay, "amountPaid": s.get('amountPaid'), "change": s.get('change') or 0,
+  "note": (s.get('note') or "")|cap_first, "voided": s.status == 'voided'
 }|tojson }}</script>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='receipt.js') }}"></script>{% endblock %}

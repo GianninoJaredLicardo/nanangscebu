@@ -1,12 +1,16 @@
 """All database code. Uses Firebase Cloud Firestore through the Firebase Admin SDK.
 
 Collections:
-  products/{id}   name, category, srp, reseller, dealer, stock, lowStock, createdAt, updatedAt
-  sales/{id}      orderNo, buyer, contact, tier, items[], packs, subtotal, discount, total,
-                  payMethod, amountPaid, change, note, status, createdAt, voidedAt
-  stockLogs/{id}  productId, name, type (sale|in|adjust|void|opening), change, before, after,
+  products/{id}   name, category, srp, reseller, dealer, cost, stock, lowStock, createdAt, updatedAt
+  sales/{id}      orderNo, buyer, contact, address, tier, items[], packs, subtotal, discount, total,
+                  payMethod, amountPaid, change, note, status, createdAt, voidedAt, collectedAt
+  stockLogs/{id}  productId, name, type (sale|in|out|adjust|void|opening), change, before, after,
                   note, saleId, orderNo, createdAt
+  customers/{key} name, contact, address, orders, lastOrderAt (key = hash of the lowercased name)
+  counters/{id}   orders-YYMMDD: {n} for daily order numbers
+  meta/backup     lastAt: when a backup was last downloaded
 """
+import hashlib
 import json
 import os
 from datetime import datetime, timezone
@@ -15,7 +19,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
-from pricing import SaleError, build_sale
+from pricing import PAID_METHODS, TO_COLLECT, SaleError, build_sale
 
 
 class StoreError(Exception):
@@ -54,6 +58,12 @@ def _doc(snap):
     return {"id": snap.id, **(snap.to_dict() or {})}
 
 
+def customer_key(name):
+    """Same buyer name (ignoring case and extra spaces) -> same customer record."""
+    norm = " ".join(str(name).lower().split())
+    return hashlib.sha1(norm.encode("utf-8")).hexdigest()[:20]
+
+
 class FirestoreStore:
     def __init__(self):
         if not firebase_admin._apps:
@@ -62,6 +72,9 @@ class FirestoreStore:
         self.products = self.db.collection("products")
         self.sales = self.db.collection("sales")
         self.logs = self.db.collection("stockLogs")
+        self.customers = self.db.collection("customers")
+        self.counters = self.db.collection("counters")
+        self.meta = self.db.collection("meta")
 
     def _log(self, tx_or_batch, **fields):
         tx_or_batch.set(self.logs.document(), {"createdAt": _now(), **fields})
@@ -139,18 +152,48 @@ class FirestoreStore:
 
         return run(self.db.transaction())
 
+    def stock_out(self, pid, qty, note):
+        """Remove spoiled, expired, damaged or free packs from stock."""
+        ref = self.products.document(pid)
+
+        @firestore.transactional
+        def run(tx):
+            snap = ref.get(transaction=tx)
+            if not snap.exists:
+                raise StoreError("This product was deleted.")
+            p = snap.to_dict()
+            before = p.get("stock") or 0
+            if qty > before:
+                raise StoreError(f"Only {before} {p['name']} in stock. You can't remove {qty}.")
+            after = before - qty
+            tx.update(ref, {"stock": after, "updatedAt": _now()})
+            self._log(tx, productId=pid, name=p["name"], type="out", change=-qty, before=before, after=after,
+                      note=note or "Stock Out")
+            return p["name"]
+
+        return run(self.db.transaction())
+
     # ---------------- sales ----------------
-    def create_sale(self, req, settings, order_no):
-        """Check stock, save the sale and deduct stock, all at once (or nothing)."""
+    def create_sale(self, req, settings, day_prefix):
+        """Check stock, save the sale and deduct stock, all at once (or nothing).
+        Order numbers count up each day: YYMMDD-001, YYMMDD-002, ..."""
         refs = [self.products.document(pid) for pid in req["qty_by_id"]]
         sale_ref = self.sales.document()
+        counter_ref = self.counters.document(f"orders-{day_prefix}")
+        cust_ref = self.customers.document(customer_key(req["buyer"]))
 
         @firestore.transactional
         def run(tx):
             snaps = [r.get(transaction=tx) for r in refs]
+            counter = counter_ref.get(transaction=tx)
             products = {s.id: _doc(s) for s in snaps if s.exists}
+            n = ((counter.to_dict() or {}).get("n") or 0) + 1 if counter.exists else 1
+            order_no = f"{day_prefix}-{n:03d}"
             sale = build_sale(products, req, settings, _now(), order_no)
+            tx.set(counter_ref, {"n": n})
             tx.set(sale_ref, sale)
+            tx.set(cust_ref, {"name": sale["buyer"], "contact": sale["contact"], "address": sale["address"],
+                              "lastOrderAt": sale["createdAt"], "orders": firestore.Increment(1)}, merge=True)
             for it in sale["items"]:
                 before = products[it["productId"]].get("stock") or 0
                 after = before - it["qty"]
@@ -191,6 +234,33 @@ class FirestoreStore:
 
         run(self.db.transaction())
 
+    def mark_paid(self, sid, method):
+        """A "To collect" order was paid: record how and when."""
+        if method not in PAID_METHODS:
+            raise StoreError("Choose how the buyer paid.")
+        sale_ref = self.sales.document(sid)
+
+        @firestore.transactional
+        def run(tx):
+            ss = sale_ref.get(transaction=tx)
+            if not ss.exists:
+                raise StoreError("This order no longer exists.")
+            sale = ss.to_dict() or {}
+            if sale.get("status") == "voided":
+                raise StoreError("This order was voided.")
+            if sale.get("payMethod") != TO_COLLECT:
+                raise StoreError("This order is already paid.")
+            tx.update(sale_ref, {"payMethod": method, "collectedAt": _now()})
+
+        run(self.db.transaction())
+
+    def to_collect(self):
+        """Unpaid orders (payment "To collect"), oldest first."""
+        q = self.sales.where(filter=FieldFilter("payMethod", "==", TO_COLLECT))
+        rows = [_doc(s) for s in q.stream()]
+        rows = [s for s in rows if s.get("status") != "voided"]
+        return sorted(rows, key=lambda s: s.get("createdAt") or _now())
+
     def delete_sale(self, sid):
         sale_ref = self.sales.document(sid)
 
@@ -211,6 +281,33 @@ class FirestoreStore:
              .where(filter=FieldFilter("createdAt", "<", end))
              .order_by("createdAt", direction=firestore.Query.DESCENDING))
         return [_doc(s) for s in q.stream()]
+
+    # ---------------- customers ----------------
+    def list_customers(self):
+        rows = [_doc(s) for s in self.customers.stream()]
+        if not rows:
+            rows = self._backfill_customers()
+        return rows
+
+    def _backfill_customers(self):
+        """First time only: build the customer list from past sales (newest details win)."""
+        found = {}
+        for s in self.sales.order_by("createdAt").stream():
+            d = s.to_dict() or {}
+            if not d.get("buyer"):
+                continue
+            k = customer_key(d["buyer"])
+            c = found.setdefault(k, {"orders": 0})
+            c.update(name=d["buyer"], contact=d.get("contact") or "", address=d.get("address") or "",
+                     lastOrderAt=d.get("createdAt"))
+            c["orders"] += 1
+        items = list(found.items())
+        for i in range(0, len(items), 400):
+            batch = self.db.batch()
+            for k, c in items[i:i + 400]:
+                batch.set(self.customers.document(k), c)
+            batch.commit()
+        return [{"id": k, **c} for k, c in items]
 
     # ---------------- stock log ----------------
     def logs_since(self, start):
@@ -244,7 +341,15 @@ class FirestoreStore:
             "products": [_doc(s) for s in self.products.stream()],
             "sales": [_doc(s) for s in self.sales.stream()],
             "stockLogs": [_doc(s) for s in self.logs.stream()],
+            "customers": [_doc(s) for s in self.customers.stream()],
         }
+
+    def note_backup(self):
+        self.meta.document("backup").set({"lastAt": _now()})
+
+    def last_backup(self):
+        s = self.meta.document("backup").get()
+        return (s.to_dict() or {}).get("lastAt") if s.exists else None
 
 
 __all__ = ["FirestoreStore", "StoreError", "SaleError"]

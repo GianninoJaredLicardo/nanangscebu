@@ -9,6 +9,8 @@
 
   const products = JSON.parse($("#products-data").textContent);
   const S = JSON.parse($("#settings-data").textContent);
+  const customers = JSON.parse($("#customers-data").textContent);
+  const customerByName = new Map(customers.map((c) => [c.name.trim().toLowerCase().replace(/\s+/g, " "), c]));
   const byId = new Map(products.map((p) => [p.id, p]));
   const cart = new Map(); // id -> qty
   let tierMode = "srp";
@@ -38,7 +40,7 @@
         <span class="pick-name">${esc(p.name)}</span>
         <span class="pick-meta"><span class="stock-${p.state}">${p.stock <= 0 ? "Out of stock" : `${p.stock} in stock`}</span>${inCart ? `<span class="in-cart">${inCart} in order</span>` : ""}</span>
         <span class="pick-price">${peso(p[tr])}</span></button>`;
-    }).join("") : `<p class="empty">${q ? `No products match “${esc(q)}”.` : inStock ? "Nothing in stock here. Untick “in-stock only” to see all, or add stock in Stock in." : "No products here."}</p>`;
+    }).join("") : `<p class="empty">${q ? `No products match “${esc(q)}”.` : inStock ? "Nothing in stock here. Untick “in-stock only” to see all, or add stock in Stock In." : "No products here."}</p>`;
   }
 
   function renderCart() {
@@ -76,7 +78,7 @@
     $("#completeSale").disabled = !ls.length;
     const jump = $("#jumpTicket");
     jump.hidden = !ls.length;
-    jump.innerHTML = `<span>View order (${packs} packs)</span><span>${peso(total)}</span>`;
+    jump.innerHTML = `<span>View Order (${packs} packs)</span><span>${peso(total)}</span>`;
   }
   const render = () => { renderCart(); renderPicker(); };
 
@@ -114,6 +116,33 @@
   new IntersectionObserver(([e]) => document.body.classList.toggle("ticket-visible", e.isIntersecting), { threshold: 0.1 }).observe($(".ticket"));
   window.addEventListener("beforeunload", (e) => { if (cart.size && !window.__saving) { e.preventDefault(); e.returnValue = ""; } });
 
+  // Returning buyer: fill in their last contact number and address (only fields you haven't typed in yourself).
+  const autoFilled = { buyerContact: "", buyerAddress: "" };
+  $("#buyerName").addEventListener("input", (e) => {
+    const c = customerByName.get(e.target.value.trim().toLowerCase().replace(/\s+/g, " "));
+    if (!c) return;
+    [["buyerContact", c.contact], ["buyerAddress", c.address]].forEach(([id, value]) => {
+      const input = $("#" + id);
+      if (value && (!input.value || input.value === autoFilled[id])) { input.value = value; autoFilled[id] = value; }
+    });
+  });
+
+  // Coming from Draft quote: load its products, price level, customer, note and discount.
+  function loadDraft() {
+    if (!new URLSearchParams(location.search).has("draft")) return;
+    history.replaceState(null, "", location.pathname);
+    let d = null;
+    try { d = JSON.parse(sessionStorage.getItem("draftToOrder") || "null"); sessionStorage.removeItem("draftToOrder"); } catch (err) { d = null; }
+    if (!d || !Array.isArray(d.items)) return;
+    let missing = 0;
+    d.items.forEach(([id, qty]) => { if (byId.has(id) && qty > 0) cart.set(id, qty); else missing++; });
+    if (d.tierMode in TIER_LABEL) tierMode = d.tierMode;
+    if (d.customer) { $("#buyerName").value = d.customer; $("#buyerName").dispatchEvent(new Event("input")); }
+    if (d.note) $("#orderNote").value = d.note;
+    if (num(d.discount) > 0) $("#discount").value = num(d.discount);
+    showToast(missing ? `Draft loaded. ${missing} product(s) no longer exist and were skipped.` : "Draft loaded. Check stock, then complete the sale.", !!missing);
+  }
+
   $("#completeSale").addEventListener("click", async () => {
     const ls = lines();
     if (!ls.length) return;
@@ -144,9 +173,10 @@
       location.href = data.url;
     } catch (err) {
       showToast(err.message || "Couldn't save the sale. Check your internet and try again.", true);
-      btn.disabled = false; btn.textContent = "Complete sale";
+      btn.disabled = false; btn.textContent = "Complete Sale";
     }
   });
 
+  loadDraft();
   render();
 })();

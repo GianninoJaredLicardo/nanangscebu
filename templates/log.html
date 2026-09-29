@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <header class="view-head">
-  <h1>Stock log</h1>
+  <h1>Stock Log</h1>
   <div class="head-actions">
     <form method="get"><select name="type" aria-label="Filter log" onchange="this.form.submit()">
-      {% for key, label in [('all','All movements'),('sale','Sold'),('in','Stock in'),('adjust','Adjustments'),('void','Voided orders')] %}
+      {% for key, label in [('all','All Movements'),('sale','Sold'),('in','Stock In'),('out','Stock Out'),('adjust','Adjustments'),('void','Voided Orders')] %}
         <option value="{{ key }}" {{ 'selected' if kind == key }}>{{ label }}</option>
       {% endfor %}
     </select></form>
     {% if logs %}
     <form method="post" action="{{ url_for('log_clear') }}" data-confirm="Clear ALL stock history? Every entry in the stock log will be permanently deleted. Your current stock counts will not change. This cannot be undone.">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="btn btn-danger" type="submit">Clear history</button>
+      <button class="btn btn-danger" type="submit">Clear History</button>
     </form>
     {% endif %}
   </div>
@@ -19,7 +19,7 @@
 <p class="muted">The latest 300 stock movements.</p>
 {% if logs %}
 <div class="table-wrap"><table>
-  <thead><tr><th>Date and time</th><th>Product</th><th>Movement</th><th class="num">Change</th><th class="num">Stock after</th><th>Note</th><th></th></tr></thead>
+  <thead><tr><th>Date and Time</th><th>Product</th><th>Movement</th><th class="num">Change</th><th class="num">Stock After</th><th>Note</th><th></th></tr></thead>
   <tbody>
   {% for l in logs %}
     <tr>
@@ -28,7 +28,7 @@
       <td>{{ LOG_LABEL.get(l.type, l.type) }}</td>
       <td class="num {{ 'plus' if l.change > 0 else 'minus' }}">{{ '+' if l.change > 0 }}{{ l.change }}</td>
       <td class="num">{{ l.after }}</td>
-      <td class="muted">{{ l.note }}</td>
+      <td class="muted">{{ l.note|cap_first }}</td>
       <td class="log-del">
         <form method="post" action="{{ url_for('log_delete', lid=l.id) }}" data-confirm="Delete this history entry? This cannot be undone. Your current stock will not change.">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
