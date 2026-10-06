@@ -11,6 +11,9 @@
   const byId = new Map(products.map((p) => [p.id, p]));
   const cart = new Map();
   let tierMode = "srp";
+  let draftId = null; // set once the draft is saved or opened from History
+  const customerByName = new Map(JSON.parse($("#draft-customers-data").textContent)
+    .map((c) => [c.name.trim().toLowerCase().replace(/\s+/g, " "), c]));
 
   function selectedLines() {
     return [...cart].map(([id, qty]) => {
@@ -71,12 +74,15 @@
     const discount = Math.min(Math.max(num($("#draftDiscount").value), 0), subtotal);
     const total = subtotal - discount;
     const customer = capWords($("#draftCustomer").value.trim()) || "Walk-in customer";
+    const contact = $("#draftContact").value.trim();
+    const address = capWords($("#draftAddress").value.trim());
     const note = capFirst($("#draftNote").value.trim());
     const canvas = document.createElement("canvas");
     const width = 1000;
     const lineHeight = 38;
-    const headShift = 70;
-    const height = Math.max(630, 400 + lines.length * lineHeight);
+    const extra = (contact ? 1 : 0) + (address ? 1 : 0);
+    const headShift = 70 + extra * 32;
+    const height = Math.max(630, 520 + lines.length * lineHeight) + extra * 32;
     canvas.width = width * 2; canvas.height = height * 2;
     const ctx = canvas.getContext("2d");
     ctx.scale(2, 2);
@@ -85,8 +91,11 @@
     if (logo) { ctx.drawImage(logo, 54, 26, 250, 96); nameX = 326; }
     ctx.fillStyle = "#5A0F36"; ctx.font = "700 19px 'Playfair Display', Georgia"; ctx.fillText(shopName, nameX, 66);
     ctx.fillStyle = "#8C6677"; ctx.font = "18px 'Source Sans 3', Arial"; ctx.fillText("DRAFT QUOTE", nameX, 96);
+    let infoY = 174;
+    ctx.fillText(customer, 54, infoY);
+    if (contact) { infoY += 32; ctx.fillText("Contact: " + contact.slice(0, 60), 54, infoY); }
+    if (address) { infoY += 32; ctx.fillText("Address: " + address.slice(0, 75), 54, infoY); }
     ctx.translate(0, headShift);
-    ctx.fillText(customer, 54, 104);
     ctx.fillText(`Price Level: ${tierMode.toUpperCase()}`, 54, 136);
     ctx.strokeStyle = "#F7D6E6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(54, 164); ctx.lineTo(946, 164); ctx.stroke();
     ctx.fillStyle = "#3A1D2B"; ctx.font = "700 18px 'Source Sans 3', Arial";
@@ -124,6 +133,7 @@
     if (!cart.size) { showToast("Add products to the draft first.", true); return; }
     const draft = {
       items: [...cart], tierMode, customer: capWords($("#draftCustomer").value.trim()),
+      contact: $("#draftContact").value.trim(), address: capWords($("#draftAddress").value.trim()),
       note: capFirst($("#draftNote").value.trim()), discount: $("#draftDiscount").value,
     };
     try { sessionStorage.setItem("draftToOrder", JSON.stringify(draft)); } catch (err) {
@@ -131,5 +141,59 @@
     }
     location.href = e.currentTarget.dataset.orderUrl;
   });
+
+  // Returning buyer: fill in their contact number and address (only into empty or auto-filled boxes).
+  const autoFilled = { draftContact: "", draftAddress: "" };
+  $("#draftCustomer").addEventListener("input", (e) => {
+    const c = customerByName.get(e.target.value.trim().toLowerCase().replace(/\s+/g, " "));
+    if (!c) return;
+    [["draftContact", c.contact], ["draftAddress", c.address]].forEach(([id, value]) => {
+      const input = $("#" + id);
+      if (value && (!input.value || input.value === autoFilled[id])) { input.value = value; autoFilled[id] = value; }
+    });
+  });
+
+  // Save to Draft History. Saving a draft opened from History updates that same draft.
+  $("#saveDraft").addEventListener("click", async (e) => {
+    if (!cart.size) { showToast("Add products to the draft first.", true); return; }
+    const btn = e.currentTarget;
+    btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      const res = await fetch(btn.dataset.saveUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
+        body: JSON.stringify({
+          id: draftId, items: [...cart].map(([id, qty]) => ({ id, qty })), tierMode,
+          customer: $("#draftCustomer").value, contact: $("#draftContact").value, address: $("#draftAddress").value,
+          note: $("#draftNote").value, discount: $("#draftDiscount").value,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Couldn't save the draft. Check your internet and try again.");
+      draftId = data.id;
+      history.replaceState(null, "", data.url);
+      showToast("Draft saved. Find it anytime in History.");
+    } catch (err) {
+      showToast(err.message || "Couldn't save the draft. Check your internet and try again.", true);
+    } finally {
+      btn.disabled = false; btn.textContent = "Save Draft";
+    }
+  });
+
+  // Opened from Draft History: load its products and details.
+  const saved = JSON.parse($("#draft-saved-data").textContent);
+  if (saved) {
+    draftId = saved.id;
+    let missing = 0;
+    saved.items.forEach(([id, qty]) => { if (byId.has(id) && qty > 0) cart.set(id, qty); else missing++; });
+    if (["srp", "reseller", "dealer"].includes(saved.tierMode)) tierMode = saved.tierMode;
+    $("#draftCustomer").value = saved.customer || "";
+    $("#draftContact").value = saved.contact || "";
+    $("#draftAddress").value = saved.address || "";
+    $("#draftNote").value = saved.note || "";
+    $("#draftDiscount").value = num(saved.discount);
+    if (missing) showToast(`${missing} product(s) in this draft no longer exist and were skipped.`, true);
+  }
+
   renderProducts(); render();
 })();

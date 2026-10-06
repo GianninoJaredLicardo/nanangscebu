@@ -22,7 +22,8 @@ except ImportError:
     pass
 
 from markupsafe import Markup, escape
-from pricing import PAID_METHODS, PAY_LABEL, PAY_METHODS, TIER_LABEL, TO_COLLECT, SaleError, cap_first, cap_words, clean_request
+from pricing import (PAID_METHODS, PAY_LABEL, PAY_METHODS, TIER_LABEL, TO_COLLECT, SaleError, build_draft, cap_first,
+                     cap_words, clean_request)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 PH = timezone(timedelta(hours=8))  # Philippines, no daylight saving
@@ -364,7 +365,49 @@ def draft():
     data = [{"id": p["id"], "name": p["name"], "category": p.get("category", ""),
              "srp": p.get("srp") or 0, "reseller": p.get("reseller") or 0,
              "dealer": p.get("dealer") or 0} for p in products]
-    return render_template("draft.html", products=data, cats=categories(products), today=date_key())
+    saved = None
+    did = request.args.get("id", "").strip()
+    if did:
+        d = db().get_draft(did)
+        if not d:
+            flash("That draft no longer exists.", "error")
+            return redirect(url_for("drafts"))
+        # Reopened drafts use today's prices; the saved total is shown so changes are easy to spot.
+        saved = {"id": d["id"], "items": [[i["productId"], i["qty"]] for i in d.get("items") or []],
+                 "tierMode": d.get("tier", "srp"), "customer": d.get("customer", ""), "contact": d.get("contact", ""),
+                 "address": d.get("address", ""), "note": d.get("note", ""), "discount": d.get("discount") or 0,
+                 "total": d.get("total") or 0, "savedAt": _dt(d.get("updatedAt"))}
+    customers = sorted(db().list_customers(), key=lambda c: to_ph(c.get("lastOrderAt")) or datetime.min.replace(tzinfo=PH),
+                       reverse=True)
+    customers = [{"name": cap_words(c.get("name", "")), "contact": c.get("contact", ""),
+                  "address": cap_words(c.get("address", ""))}
+                 for c in customers[:1000] if c.get("name")]
+    return render_template("draft.html", products=data, cats=categories(products), today=date_key(), saved=saved,
+                           customers=customers)
+
+
+@app.route("/api/draft", methods=["POST"])
+def api_draft():
+    data = request.get_json(silent=True)
+    try:
+        products = {p["id"]: p for p in db().list_products()}
+        draft_data = build_draft(data, products)
+        did = db().save_draft(draft_data, str(data.get("id") or "").strip() or None)
+    except user_error_types() as e:
+        return jsonify(error=str(e)), 400
+    return jsonify(id=did, url=url_for("draft", id=did))
+
+
+@app.route("/drafts")
+def drafts():
+    return render_template("drafts.html", drafts=db().recent_drafts(300))
+
+
+@app.route("/drafts/<did>/delete", methods=["POST"])
+def draft_delete(did):
+    db().delete_draft(did)
+    flash("Draft deleted.")
+    return redirect(url_for("drafts"))
 
 
 def order_day_prefix():
@@ -494,6 +537,19 @@ def product_seed():
         items = json.load(fh)
     n = db().seed_products(items, SETTINGS["low_stock"])
     flash(f"Loaded {n} products. Now add your stock in Stock In." if n else "All products are already loaded.")
+    return redirect(url_for("products"))
+
+
+@app.route("/products/sync", methods=["POST"])
+def product_sync():
+    """Apply the prices in products.json to the products already loaded. Stock and cost don't change."""
+    with open(os.path.join(BASE, "products.json"), encoding="utf-8") as fh:
+        items = json.load(fh)
+    added, updated, not_on_list = db().sync_price_list(items, SETTINGS["low_stock"])
+    msg = f"Price list applied: {updated} products updated, {added} new products added."
+    if not_on_list:
+        msg += " Not on the new list (left as is): " + ", ".join(not_on_list) + "."
+    flash(msg)
     return redirect(url_for("products"))
 
 

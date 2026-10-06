@@ -127,7 +127,7 @@
     });
   });
 
-  // Coming from Draft quote: load its products, price level, customer, note and discount.
+  // Coming from Draft quote: load its products, price level, customer details, note and discount.
   function loadDraft() {
     if (!new URLSearchParams(location.search).has("draft")) return;
     history.replaceState(null, "", location.pathname);
@@ -138,6 +138,8 @@
     d.items.forEach(([id, qty]) => { if (byId.has(id) && qty > 0) cart.set(id, qty); else missing++; });
     if (d.tierMode in TIER_LABEL) tierMode = d.tierMode;
     if (d.customer) { $("#buyerName").value = d.customer; $("#buyerName").dispatchEvent(new Event("input")); }
+    if (d.contact) $("#buyerContact").value = d.contact;
+    if (d.address) $("#buyerAddress").value = d.address;
     if (d.note) $("#orderNote").value = d.note;
     if (num(d.discount) > 0) $("#discount").value = num(d.discount);
     showToast(missing ? `Draft loaded. ${missing} product(s) no longer exist and were skipped.` : "Draft loaded. Check stock, then complete the sale.", !!missing);

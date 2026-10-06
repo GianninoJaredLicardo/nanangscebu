@@ -523,3 +523,6 @@ a.cal-day:hover { border-color: var(--pink); }
   .draft-sheet { border: 0; box-shadow: none; padding: 0; max-width: none; }
   .draft-line { grid-template-columns: 1fr 80px 120px; }
 }
+
+/* Draft history */
+.draft-saved { background: var(--petal); border-radius: var(--r-sm, 8px); padding: 8px 12px; font-size: 13px; margin: 0 0 12px; }

@@ -13,9 +13,9 @@ A web-based inventory system for your frozen products business.
 - **New order:** tap products, set quantities, and it computes the total. You choose the price level (SRP, Reseller or Dealer). Handles discount and payment method. Returning buyers' contact number and address fill in by themselves.
 - **Complete sale:** the server re-checks prices and stock, deducts the stock, and saves the order with the date and time, all in one step. If there isn't enough stock, the sale is blocked. Orders are numbered per day: `260929-001`, `260929-002`, ...
 - **Receipt:** printable receipt for every order, plus **Download JPEG** and (on phones) **Share** to send it on Messenger or Viber. Void an order and the stock goes back.
-- **Draft quote:** make a price estimate without touching stock. **Turn into order** moves it to New order when the buyer agrees.
+- **Draft quote:** make a price estimate without touching stock. Customer name, contact number and address are optional. **Save draft** keeps it in **History** so you can reopen, edit, print or delete it anytime. **Turn into order** moves it to New order when the buyer agrees.
 - **To collect:** every order saved with payment "To collect", who owes what, and a **Mark as paid** button.
-- **Products:** all 50 Nanang's Authentic Recipes products with SRP, Reseller and Dealer prices, your own cost (optional), stock count and low-stock alerts.
+- **Products:** all 61 Nanang's Authentic Recipes products (including per-pack prices) with SRP, Reseller and Dealer prices, your own cost (optional), stock count and low-stock alerts.
 - **Stock in/out:** record deliveries, and remove spoiled, expired, damaged or free packs with a reason.
 - **Sales:** today, yesterday, last 7 days, this month or any dates, with totals, packs sold, best-selling items and profit (when your cost is filled in). Export to CSV (opens in Excel).
 - **Calendar:** a month view with each day's sales. Tap a day to see its orders and the items sold.
@@ -28,7 +28,7 @@ A web-based inventory system for your frozen products business.
 app.py              Flask app (pages, login, sales, reports)
 store.py            Database code (Firebase Firestore)
 pricing.py          Order math (price level, totals, stock check)
-products.json       Your 50 products and prices
+products.json       Your 61 products and prices (the official Cebu price list)
 templates/          HTML pages
 static/             CSS and JavaScript
 make_password.py    Makes your admin password hash (ADMIN_PASSWORD_HASH)
@@ -96,6 +96,8 @@ Your data lives in Firebase, not on Railway, so redeploying never loses it.
 | Remove spoiled or expired packs | **Stock in/out** → **Stock out** |
 | Send a receipt to a buyer | Open the order → **Share** (phone) or **Download JPEG** |
 | Turn a quote into a sale | **Draft quote** → **Turn into order** |
+| Reopen a saved quote | **Draft quote** → **History** → **Open** |
+| Use a new price list | Update `products.json`, then **Products** → **Apply Price List** |
 | See who still owes you | **To collect** → **Paid** when they pay |
 | Fix a wrong stock count | **Products** → **Edit** → change stock and give a reason |
 | Cancel a sale | **Sales** → **View** → **Void order** |

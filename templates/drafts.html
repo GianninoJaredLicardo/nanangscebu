@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Draft History - {{ SETTINGS.shop_name }}{% endblock %}
+{% block content %}
+<header class="view-head">
+  <div><h1>Draft History</h1><p class="muted">Saved draft quotes, newest first. Open one to edit, print or turn it into an order.</p></div>
+  <div class="head-actions"><a class="btn btn-primary" href="{{ url_for('draft') }}">New Draft</a></div>
+</header>
+{% if drafts %}
+<div class="toolbar"><input id="draftSearch" type="search" placeholder="Search customer, contact or product" aria-label="Search drafts"></div>
+<div class="table-wrap"><table id="draftTable">
+  <thead><tr><th>Last Saved</th><th>Customer</th><th>Contact Number</th><th>Price Level</th><th class="num">Packs</th><th class="num">Total</th><th></th></tr></thead>
+  <tbody>
+  {% for d in drafts %}
+    <tr data-search="{{ [d.customer, d.contact, d.address, d.note]|join(' ')|lower }} {{ d['items']|map(attribute='name')|join(' ')|lower }}">
+      <td>{{ d.updatedAt|dt }}</td>
+      <td class="name">{{ d.customer or 'Walk-in customer' }}{% if d.address %}<br><span class="muted small">{{ d.address }}</span>{% endif %}</td>
+      <td>{{ d.contact or '' }}</td>
+      <td>{{ TIER_LABEL.get(d.tier, d.tier) }}</td>
+      <td class="num">{{ d.packs|num }}</td>
+      <td class="num">{{ d.total|peso }}</td>
+      <td><div class="actions">
+        <a class="btn" href="{{ url_for('draft', id=d.id) }}">Open</a>
+        <form method="post" action="{{ url_for('draft_delete', did=d.id) }}" data-confirm="Delete this draft? This cannot be undone.">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="link-btn danger-link" type="submit">Delete</button>
+        </form>
+      </div></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="empty" id="draftEmpty" hidden>No drafts match your search.</p>
+{% else %}
+<p class="empty">No saved drafts yet. Make a draft quote and tap Save Draft to keep it here.</p>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if drafts %}<script>
+  document.getElementById("draftSearch").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll("#draftTable tbody tr").forEach((tr) => { const ok = !q || tr.dataset.search.includes(q); tr.hidden = !ok; shown += ok; });
+    document.getElementById("draftEmpty").hidden = shown > 0;
+  });
+</script>{% endif %}{% endblock %}

@@ -4,6 +4,9 @@
 <header class="view-head no-print">
   <div><h1>Draft Quote</h1><p class="muted">Compute an estimate without checking or changing stock.</p></div>
   <div class="head-actions draft-actions">
+    <a class="btn" href="{{ url_for('drafts') }}">History</a>
+    {% if products %}<a class="btn" href="{{ url_for('draft') }}">New Draft</a>
+    <button class="btn" type="button" id="saveDraft" data-save-url="{{ url_for('api_draft') }}">Save Draft</button>{% endif %}
     <button class="btn" type="button" id="printDraft">Print</button>
     <button class="btn" type="button" id="downloadJpeg">Download JPEG</button>
     {% if products %}<button class="btn btn-primary" type="button" id="draftToOrder" data-order-url="{{ url_for('order', draft=1) }}">Turn Into Order</button>{% endif %}
@@ -29,10 +32,14 @@
       <div class="draft-brand"><img class="logo" src="{{ url_for('static', filename='logo.png') }}" alt="" width="150" height="57"><div><span class="shop-name">{{ SETTINGS.shop_name|brand }}</span><p class="muted small">Draft quote · {{ today }}</p></div></div>
       <strong>ESTIMATE</strong>
     </div>
+    {% if saved %}<p class="draft-saved no-print">Saved draft · last saved {{ saved.savedAt }} · saved total {{ saved.total|peso }}. Prices below are today's prices.</p>{% endif %}
     <div class="draft-details">
-      <label>Customer<input id="draftCustomer" placeholder="Optional" autocapitalize="words"></label>
+      <label>Customer Name<input id="draftCustomer" placeholder="Optional" autocapitalize="words" list="draftCustomers" autocomplete="off"></label>
+      <label>Contact Number<input id="draftContact" placeholder="Optional" inputmode="tel"></label>
+      <label>Address<input id="draftAddress" placeholder="Optional" autocapitalize="words"></label>
       <label>Note<input id="draftNote" placeholder="Optional" autocapitalize="sentences"></label>
     </div>
+    <datalist id="draftCustomers">{% for c in customers %}<option value="{{ c.name }}">{% endfor %}</datalist>
     <div class="tier-row">
       <span class="label-text">Price Level</span>
       <div class="seg" id="draftTier" role="group" aria-label="Price level">
@@ -51,6 +58,8 @@
   </section>
 </div>
 <script id="draft-products-data" type="application/json">{{ products|tojson }}</script>
+<script id="draft-customers-data" type="application/json">{{ customers|tojson }}</script>
+<script id="draft-saved-data" type="application/json">{{ saved|tojson }}</script>
 {% endif %}
 {% endblock %}
 {% block scripts %}{% if products %}<script src="{{ url_for('static', filename='draft.js') }}"></script>{% endif %}{% endblock %}

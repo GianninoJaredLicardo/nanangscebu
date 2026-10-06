@@ -134,3 +134,45 @@ def build_sale(products_by_id, req, settings, now, order_no):
         "status": "completed",
         "createdAt": now,
     }
+
+
+def build_draft(data, products_by_id):
+    """Validate a Draft quote sent by the draft page and price it from CURRENT product data.
+    Customer name, contact number and address are all optional. Stock is never checked."""
+    if not isinstance(data, dict):
+        raise SaleError("Invalid draft.")
+    qty_by_id = {}
+    for it in data.get("items") or []:
+        if not isinstance(it, dict):
+            continue
+        pid = str(it.get("id", "")).strip()
+        try:
+            q = int(it.get("qty", 0))
+        except (TypeError, ValueError):
+            q = 0
+        if pid in products_by_id and q > 0:
+            qty_by_id[pid] = min(qty_by_id.get(pid, 0) + q, 9999)
+    if not qty_by_id:
+        raise SaleError("Add at least one product to the draft.")
+    if len(qty_by_id) > 150:
+        raise SaleError("Too many different products in one draft.")
+    tier = data.get("tierMode") if data.get("tierMode") in TIERS else "srp"
+    items = []
+    for pid, q in qty_by_id.items():
+        p = products_by_id[pid]
+        price = p.get(tier) or 0
+        items.append({"productId": pid, "name": p["name"], "qty": q, "price": price, "subtotal": price * q})
+    subtotal = sum(i["subtotal"] for i in items)
+    discount = min(max(_num(data.get("discount")), 0), subtotal)
+    return {
+        "customer": cap_words(" ".join(str(data.get("customer") or "").split()))[:120],
+        "contact": str(data.get("contact") or "").strip()[:200],
+        "address": cap_words(" ".join(str(data.get("address") or "").split()))[:300],
+        "note": cap_first(str(data.get("note") or "").strip())[:300],
+        "tier": tier,
+        "items": items,
+        "packs": sum(i["qty"] for i in items),
+        "subtotal": subtotal,
+        "discount": discount,
+        "total": subtotal - discount,
+    }

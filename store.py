@@ -7,6 +7,8 @@ Collections:
   stockLogs/{id}  productId, name, type (sale|in|out|adjust|void|opening), change, before, after,
                   note, saleId, orderNo, createdAt
   customers/{key} name, contact, address, orders, lastOrderAt (key = hash of the lowercased name)
+  drafts/{id}     customer, contact, address, note, tier, items[], packs, subtotal, discount, total,
+                  createdAt, updatedAt (saved Draft quotes; never touch stock)
   counters/{id}   orders-YYMMDD: {n} for daily order numbers
   meta/backup     lastAt: when a backup was last downloaded
 """
@@ -75,6 +77,7 @@ class FirestoreStore:
         self.customers = self.db.collection("customers")
         self.counters = self.db.collection("counters")
         self.meta = self.db.collection("meta")
+        self.drafts = self.db.collection("drafts")
 
     def _log(self, tx_or_batch, **fields):
         tx_or_batch.set(self.logs.document(), {"createdAt": _now(), **fields})
@@ -133,6 +136,36 @@ class FirestoreStore:
         if added:
             batch.commit()
         return added
+
+    def sync_price_list(self, items, low_stock):
+        """Apply the price list: update name, category and prices of products already loaded (matched by id,
+        then by name) and add the missing ones. Stock, cost and low-stock levels are left alone.
+        Returns (added, updated, not_on_list) where not_on_list are names of products the list no longer has."""
+        existing = self.list_products()
+        by_id = {p["id"]: p for p in existing}
+        by_name = {" ".join(p.get("name", "").lower().split()): p for p in existing}
+        fields = ("name", "category", "srp", "reseller", "dealer")
+        now = _now()
+        writes, added, updated, matched = [], 0, 0, set()
+        for item in items:
+            cur = by_id.get(item["id"]) or by_name.get(" ".join(item["name"].lower().split()))
+            data = {k: item[k] for k in fields}
+            if cur is None:
+                writes.append((self.products.document(item["id"]), {**data, "stock": 0, "lowStock": low_stock,
+                                                                    "createdAt": now, "updatedAt": now}, False))
+                added += 1
+                continue
+            matched.add(cur["id"])
+            if any(cur.get(k) != data[k] for k in fields):
+                writes.append((self.products.document(cur["id"]), {**data, "updatedAt": now}, True))
+                updated += 1
+        for i in range(0, len(writes), 400):
+            batch = self.db.batch()
+            for ref, data, merge in writes[i:i + 400]:
+                batch.set(ref, data, merge=merge)
+            batch.commit()
+        not_on_list = sorted(p.get("name", "") for p in existing if p["id"] not in matched)
+        return added, updated, not_on_list
 
     def restock(self, pid, qty, note):
         ref = self.products.document(pid)
@@ -309,6 +342,31 @@ class FirestoreStore:
             batch.commit()
         return [{"id": k, **c} for k, c in items]
 
+    # ---------------- draft quotes ----------------
+    def save_draft(self, data, did=None):
+        """Create a draft, or overwrite the one with id `did`. Returns its id."""
+        now = _now()
+        if did:
+            ref = self.drafts.document(did)
+            if not ref.get().exists:
+                raise StoreError("This draft was deleted. Save it again as a new draft.")
+            ref.update({**data, "updatedAt": now})
+            return did
+        ref = self.drafts.document()
+        ref.set({**data, "createdAt": now, "updatedAt": now})
+        return ref.id
+
+    def get_draft(self, did):
+        s = self.drafts.document(did).get()
+        return _doc(s) if s.exists else None
+
+    def recent_drafts(self, limit=300):
+        q = self.drafts.order_by("updatedAt", direction=firestore.Query.DESCENDING).limit(limit)
+        return [_doc(s) for s in q.stream()]
+
+    def delete_draft(self, did):
+        self.drafts.document(did).delete()
+
     # ---------------- stock log ----------------
     def logs_since(self, start):
         q = self.logs.where(filter=FieldFilter("createdAt", ">=", start)).order_by(
@@ -342,6 +400,7 @@ class FirestoreStore:
             "sales": [_doc(s) for s in self.sales.stream()],
             "stockLogs": [_doc(s) for s in self.logs.stream()],
             "customers": [_doc(s) for s in self.customers.stream()],
+            "drafts": [_doc(s) for s in self.drafts.stream()],
         }
 
     def note_backup(self):
