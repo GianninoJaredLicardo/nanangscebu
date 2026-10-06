@@ -11,6 +11,7 @@ Collections:
                   createdAt, updatedAt (saved Draft quotes; never touch stock)
   counters/{id}   orders-YYMMDD: {n} for daily order numbers
   meta/backup     lastAt: when a backup was last downloaded
+  meta/priceList  version, appliedAt: which products.json was last applied
 """
 import hashlib
 import json
@@ -166,6 +167,19 @@ class FirestoreStore:
             batch.commit()
         not_on_list = sorted(p.get("name", "") for p in existing if p["id"] not in matched)
         return added, updated, not_on_list
+
+    def apply_price_list_if_new(self, items, low_stock):
+        """Apply products.json once per version, so a new price list goes live by itself after a deploy
+        while prices edited in the app are kept until the next new list. Returns sync_price_list's result,
+        or None when this version was already applied."""
+        version = hashlib.sha1(json.dumps(items, sort_keys=True).encode("utf-8")).hexdigest()
+        ref = self.meta.document("priceList")
+        snap = ref.get()
+        if snap.exists and (snap.to_dict() or {}).get("version") == version:
+            return None
+        result = self.sync_price_list(items, low_stock)
+        ref.set({"version": version, "appliedAt": _now()})
+        return result
 
     def restock(self, pid, qty, note):
         ref = self.products.document(pid)

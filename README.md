@@ -97,7 +97,7 @@ Your data lives in Firebase, not on Railway, so redeploying never loses it.
 | Send a receipt to a buyer | Open the order → **Share** (phone) or **Download JPEG** |
 | Turn a quote into a sale | **Draft quote** → **Turn into order** |
 | Reopen a saved quote | **Draft quote** → **History** → **Open** |
-| Use a new price list | Update `products.json`, then **Products** → **Apply Price List** |
+| Use a new price list | Update `products.json` and push. Prices update by themselves after the deploy (stock and cost stay) |
 | See who still owes you | **To collect** → **Paid** when they pay |
 | Fix a wrong stock count | **Products** → **Edit** → change stock and give a reason |
 | Cancel a sale | **Sales** → **View** → **Void order** |

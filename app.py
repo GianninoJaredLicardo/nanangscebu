@@ -71,8 +71,28 @@ def db():
         with _store_lock:
             if _store is None:
                 from store import FirestoreStore
-                _store = FirestoreStore()
+                store = FirestoreStore()
+                apply_price_list(store)
+                _store = store
     return _store
+
+
+def load_price_list():
+    with open(os.path.join(BASE, "products.json"), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def apply_price_list(store):
+    """When products.json has changed, update prices and add new products automatically (stock and cost stay)."""
+    try:
+        result = store.apply_price_list_if_new(load_price_list(), SETTINGS["low_stock"])
+    except Exception as e:  # never block the app over this; it tries again on the next start
+        print(f"WARNING: couldn't apply the price list: {e}")
+        return
+    if result:
+        added, updated, not_on_list = result
+        print(f"Price list applied: {updated} updated, {added} added."
+              + (f" Not on the list (left as is): {', '.join(not_on_list)}" if not_on_list else ""))
 
 
 def user_error_types():
@@ -533,23 +553,8 @@ def product_delete(pid):
 
 @app.route("/products/seed", methods=["POST"])
 def product_seed():
-    with open(os.path.join(BASE, "products.json"), encoding="utf-8") as fh:
-        items = json.load(fh)
-    n = db().seed_products(items, SETTINGS["low_stock"])
+    n = db().seed_products(load_price_list(), SETTINGS["low_stock"])
     flash(f"Loaded {n} products. Now add your stock in Stock In." if n else "All products are already loaded.")
-    return redirect(url_for("products"))
-
-
-@app.route("/products/sync", methods=["POST"])
-def product_sync():
-    """Apply the prices in products.json to the products already loaded. Stock and cost don't change."""
-    with open(os.path.join(BASE, "products.json"), encoding="utf-8") as fh:
-        items = json.load(fh)
-    added, updated, not_on_list = db().sync_price_list(items, SETTINGS["low_stock"])
-    msg = f"Price list applied: {updated} products updated, {added} new products added."
-    if not_on_list:
-        msg += " Not on the new list (left as is): " + ", ".join(not_on_list) + "."
-    flash(msg)
     return redirect(url_for("products"))
 
 
