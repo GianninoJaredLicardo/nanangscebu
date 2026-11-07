@@ -151,10 +151,6 @@
     const buyerName = $("#buyerName").value.trim();
     const buyerContact = $("#buyerContact").value.trim();
     const buyerAddress = $("#buyerAddress").value.trim();
-    if (!buyerName || !buyerContact || !buyerAddress) {
-      showToast("Buyer name, contact number, and address are required.", true);
-      return;
-    }
     const short = ls.filter((l) => l.short);
     if (short.length) { showToast("Not enough stock: " + short.map((l) => `${l.name} (${l.stock} left)`).join(", "), true); return; }
     const btn = $("#completeSale");

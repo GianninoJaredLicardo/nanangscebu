@@ -19,10 +19,10 @@
   <aside class="ticket" aria-label="Order ticket">
     <div class="ticket-head"><h2>Order Ticket</h2><button class="link-btn" id="clearCart" type="button">Clear</button></div>
     <div class="field-row">
-      <label>Buyer Name<input id="buyerName" placeholder="Required" autocapitalize="words" maxlength="120" required list="customerList" autocomplete="off"></label>
+      <label>Buyer Name<input id="buyerName" placeholder="" autocapitalize="words" maxlength="120" list="customerList" autocomplete="off"></label>
       <datalist id="customerList">{% for c in customers %}<option value="{{ c.name }}">{% endfor %}</datalist>
-      <label>Contact Number<input id="buyerContact" placeholder="Required" maxlength="200" required></label>
-      <label>Address<input id="buyerAddress" placeholder="Required" autocapitalize="words" maxlength="300" required></label>
+      <label>Contact Number<input id="buyerContact" placeholder="" maxlength="200"></label>
+      <label>Address<input id="buyerAddress" placeholder="" autocapitalize="words" maxlength="300"></label>
     </div>
     <div class="tier-row">
       <span class="label-text">Price</span>

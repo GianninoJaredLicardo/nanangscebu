@@ -34,10 +34,10 @@
     </div>
     {% if saved %}<p class="draft-saved no-print">Saved draft · last saved {{ saved.savedAt }} · saved total {{ saved.total|peso }}. Prices below are today's prices.</p>{% endif %}
     <div class="draft-details">
-      <label>Customer Name<input id="draftCustomer" placeholder="Optional" autocapitalize="words" list="draftCustomers" autocomplete="off"></label>
-      <label>Contact Number<input id="draftContact" placeholder="Optional" inputmode="tel"></label>
-      <label>Address<input id="draftAddress" placeholder="Optional" autocapitalize="words"></label>
-      <label>Note<input id="draftNote" placeholder="Optional" autocapitalize="sentences"></label>
+      <label>Customer Name<input id="draftCustomer" placeholder="" autocapitalize="words" list="draftCustomers" autocomplete="off"></label>
+      <label>Contact Number<input id="draftContact" placeholder="" inputmode="tel"></label>
+      <label>Address<input id="draftAddress" placeholder="" autocapitalize="words"></label>
+      <label>Note<input id="draftNote" placeholder="" autocapitalize="sentences"></label>
     </div>
     <datalist id="draftCustomers">{% for c in customers %}<option value="{{ c.name }}">{% endfor %}</datalist>
     <div class="tier-row">

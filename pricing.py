@@ -71,12 +71,6 @@ def clean_request(data):
     buyer = cap_words(" ".join(str(data.get("buyer") or "").split()))[:120]
     contact = (str(data.get("contact") or "").strip())[:200]
     address = cap_words(" ".join(str(data.get("address") or "").split()))[:300]
-    if not buyer:
-        raise SaleError("Enter the buyer name.")
-    if not contact:
-        raise SaleError("Enter the buyer contact number.")
-    if not address:
-        raise SaleError("Enter the buyer address.")
     return {
         "qty_by_id": qty_by_id,
         "mode": mode,

@@ -77,7 +77,7 @@
     ctx.fillStyle = "#5A0F36"; ctx.font = "700 19px 'Playfair Display', Georgia";
     wrap(ctx, R.shopName, right - nameX).forEach((l, i) => ctx.fillText(l, nameX, 60 + i * 24));
     ctx.fillStyle = "#8C6677"; ctx.font = "18px 'Source Sans 3', Arial";
-    ctx.fillText("OFFICIAL RECEIPT" + (R.shopContact ? "  ·  " + R.shopContact : ""), nameX, 118);
+    ctx.fillText("RECEIPT" + (R.shopContact ? "  ·  " + R.shopContact : ""), nameX, 118);
     let y = 160;
 
     if (R.voided) {
